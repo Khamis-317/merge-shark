@@ -1,4 +1,5 @@
 import { Command, Option } from '@commander-js/extra-typings';
+import { resolveConflicts } from './agent/index.js';
 
 const program = new Command();
 
@@ -14,8 +15,9 @@ program
       'current working directory'
     )
   )
-  .action((options) => {
+  .action(async (options) => {
     console.log(`Resolving conflict in ${options.repo}`);
+    await resolveConflicts(options.repo);
   });
 
 await program.parseAsync(process.argv);
