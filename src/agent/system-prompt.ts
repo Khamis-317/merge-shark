@@ -1,5 +1,6 @@
 import dedent from 'dedent';
 import { formatDate } from '../utils/format-date.js';
+import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 export interface SystemInfo {
   operatingSystem: string;
@@ -11,7 +12,10 @@ export interface SystemPromptOptions {
   systemInfo: SystemInfo;
 }
 
-export function createSystemPrompt(options: SystemPromptOptions) {
+export function createSystemPrompt(
+  options: SystemPromptOptions,
+  tools: DynamicStructuredTool[]
+) {
   const prompt = dedent`
     You are an AI agent used in a CLI tool. You are responsible for fixing Git merge conflicts for software developers.
     Use the following instructions to fix every conflict in the repository.
@@ -94,6 +98,28 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Make sure the code is valid. Don't assume the user has any dependencies without checking. If there are missing imports, add them.
     - Follow the code style of the existing code.
     </code_guidelines>
+
+    <tools>
+    You have access to a set of tools that can help you gather the necessary context to resolve code conflicts.  
+    Each tool is designed for a specific purpose for example inspecting files, exploring directories, searching for references.  
+
+    When reasoning, you should explicitly follow this format:
+
+    Question: the input question or conflict you are resolving
+    Thought: describe your reasoning step by step
+    Action: the tool you want to use (must be one of [${tools.map((t) => t.name)}])
+    Action Input: the input to the tool
+    Observation: the result returned by the tool
+    (repeat Thought/Action/Action Input/Observation as many times as needed)
+    Thought: summarize what you have learned and whether you are ready to answer
+    Final Answer: provide the resolved output or explanation
+
+    Example:  
+    - Use the **read** tool when you need to inspect the contents of a specific file that might be related to the conflict.  
+
+    Always reason carefully before using a tool, and only produce the Final Answer once you have enough information.
+    </tools>
+
 
     <system_information>
     Operating system: ${options.systemInfo.operatingSystem}
