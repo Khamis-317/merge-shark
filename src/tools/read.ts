@@ -15,13 +15,13 @@ export function makeReadTool(repoPath: string) {
       .number()
       .optional()
       .describe(
-        'The number of lines to read. Only provide if the file is too large to read at once.'
+        `The number of lines to read. Only provide if the file has more than ${DEFAULT_FILE_READ_LINES_LIMIT} lines.`
       ),
     offset: z
       .number()
       .optional()
       .describe(
-        'The number of lines to read. Only provide if the file is too large to read at once.'
+        'The line number to start reading from. Only provide if the file has more than ${DEFAULT_FILE_READ_LINES_LIMIT} lines.'
       ),
   });
 
@@ -55,7 +55,7 @@ export function makeReadTool(repoPath: string) {
           You can access any file from the codebase by providing the relative path to the tool (for example src/index.ts).
           Use this tool to read files that may be relevant to the code conflict. In particular, focus on files that are 
           directly imported or included in the code involved in the conflict.
-          By default it reads up to 2000 lines starting from the beginning of the file.
+          By default it reads up to ${DEFAULT_FILE_READ_LINES_LIMIT} lines starting from the beginning of the file.
           You can optionally specify a line offset and limit (especially handy for long files)
           but it's recommended to read the whole file by not providing these parameters.
           You need to use other tools with this tool (if they are available):
