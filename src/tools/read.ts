@@ -1,28 +1,35 @@
 import { tool } from '@langchain/core/tools';
-import { readFile } from '../utils/read-file.js';
+import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
 import dedent from 'dedent';
+import path from 'path';
 
-export function makeReadTool(toolsNames: string[] = []) {
+export function makeReadTool(repoPath: string) {
   const readSchema = z.object({
-    path: z.string().describe(
-      dedent`
-        The absolute path to the file you want to read (for example /home/User/Desktop/coding/index.ts).
-        You can get the base path of the project (for example: /home/User/Desktop/coding) from the path 
-        of the codebase given. When analyzing a conflict, use the import paths inside the conflicting file to 
-        locate and access related files for additional context. From the imports, take the file name or 
-        relative path (for example: index.ts or utils/math.ts) and prepend it to the base path of the codebase.  
-        For example: base_path=/home/User/Desktop/coding/, file_name=utils/math.ts, full_path=/home/User/Desktop/coding/utils/math.ts.  
-        Always construct the full absolute path inside the project. Do not reference files outside the project root.
-        Do not provide multiple paths, only a single file path. 
-      `
-    ),
+    relativePath: z
+      .string()
+      .describe(
+        'The relative path to the file you want to read (for example src/index.ts)'
+      ),
+    limit: z
+      .number()
+      .describe(
+        'Maximum number of lines to read from the file (by default 2000)'
+      ),
   });
 
   return tool(
-    async ({ path }: { path: string }) => {
+    async ({
+      relativePath,
+      limit = DEFAULT_FILE_READ_LINES_LIMIT,
+    }: {
+      relativePath: string;
+      limit: number;
+    }) => {
       try {
-        const data = await readFile(path);
+        const absolutePath: string = path.resolve(repoPath, relativePath);
+
+        const data = await readFile(absolutePath, { limit });
 
         return data;
       } catch (err: any) {
@@ -33,11 +40,13 @@ export function makeReadTool(toolsNames: string[] = []) {
       name: 'read',
       description: dedent`
           Reads a file from the codebase to provide more context on how to resolve the conflict.
-          You can access any file from the codebase by providing the absolute path to it directly by using this tool.
+          You can access any file from the codebase by providing the relative path to the tool (for example src/index.ts).
           Use this tool to read files that may be relevant to the code conflict. In particular, focus on files that are 
-          directly imported or included by the code involved in the conflict.
+          directly imported or included in the code involved in the conflict.
+          By default it reads up to 2000 lines starting from the beginning of the file.
+          You can optionally specify a line offset and limit (especially handy for long files)
+          but it's recommended to read the whole file by not providing these parameters.
           You need to use other tools with this tool (if they are available):
-          ${toolsNames.map((t) => `- ${t}`)}
         `,
       schema: readSchema,
     }

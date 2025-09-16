@@ -1,6 +1,5 @@
 import dedent from 'dedent';
 import { formatDate } from '../utils/format-date.js';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 export interface SystemInfo {
   operatingSystem: string;
@@ -12,10 +11,7 @@ export interface SystemPromptOptions {
   systemInfo: SystemInfo;
 }
 
-export function createSystemPrompt(
-  options: SystemPromptOptions,
-  tools: DynamicStructuredTool[]
-) {
+export function createSystemPrompt(options: SystemPromptOptions) {
   const prompt = dedent`
     You are an AI agent used in a CLI tool. You are responsible for fixing Git merge conflicts for software developers.
     Use the following instructions to fix every conflict in the repository.
@@ -107,7 +103,7 @@ export function createSystemPrompt(
 
     Question: the input question or conflict you are resolving
     Thought: describe your reasoning step by step
-    Action: the tool you want to use (must be one of [${tools.map((t) => t.name)}])
+    Action: the tool you want to use. 
     Action Input: the input to the tool
     Observation: the result returned by the tool
     (repeat Thought/Action/Action Input/Observation as many times as needed)

@@ -24,23 +24,20 @@ export async function resolveConflicts(repoPath: string) {
     temperature: 0.2,
   });
 
-  const tools: DynamicStructuredTool[] = [makeReadTool()];
+  const tools: DynamicStructuredTool[] = [makeReadTool(repoPath)];
 
   const agent = createReactAgent({
-    llm: llm,
-    tools: tools,
+    llm,
+    tools,
   });
 
-  const systemPrompt = createSystemPrompt(
-    {
-      systemInfo: {
-        operatingSystem: process.platform,
-        date: new Date(),
-        workingDirectory: repoPath,
-      },
+  const systemPrompt = createSystemPrompt({
+    systemInfo: {
+      operatingSystem: process.platform,
+      date: new Date(),
+      workingDirectory: repoPath,
     },
-    tools
-  );
+  });
 
   const userPrompt = dedent`
     Resolve the conflicts in the following files:
@@ -64,12 +61,8 @@ export async function resolveConflicts(repoPath: string) {
     },
   ];
 
-  const result = await agent.invoke({
-    messages: messages,
-  });
+  const result = await agent.invoke({ messages });
 
   console.log('\n\nRESPONSE:\n');
-
-  // The Conflict resolution is in the content of the final message
-  console.log(result.messages.at(-1)?.content);
+  console.log(result);
 }
