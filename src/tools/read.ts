@@ -39,8 +39,11 @@ export function makeReadTool(repoPath: string) {
         const data = await readFile(absolutePath, { limit, offset });
 
         return data;
-      } catch (err: any) {
-        return `Error reading file: ${err.message}`;
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return `Error reading file: ${err.message}`;
+        }
+        return `An unknown error occured: ${err}`;
       }
     },
     {
