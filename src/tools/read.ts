@@ -13,11 +13,13 @@ export function makeReadTool(repoPath: string) {
       ),
     limit: z
       .number()
+      .optional()
       .describe(
         'The number of lines to read. Only provide if the file is too large to read at once.'
       ),
     offset: z
       .number()
+      .optional()
       .describe(
         'The number of lines to read. Only provide if the file is too large to read at once.'
       ),
