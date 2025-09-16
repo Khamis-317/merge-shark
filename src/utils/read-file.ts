@@ -11,9 +11,12 @@ export const DEFAULT_FILE_READ_LINES_LIMIT = 2000;
  */
 export async function readFile(
   path: string,
-  { limit = DEFAULT_FILE_READ_LINES_LIMIT } = {}
+  { limit = DEFAULT_FILE_READ_LINES_LIMIT, offset = 0 } = {}
 ) {
   const content = await fs.readFile(path, 'utf8');
-  const limited = content.split('\n').slice(0, limit).join('\n');
+  const limited = content
+    .split('\n')
+    .slice(offset, limit + offset)
+    .join('\n');
   return limited;
 }

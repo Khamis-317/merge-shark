@@ -14,7 +14,12 @@ export function makeReadTool(repoPath: string) {
     limit: z
       .number()
       .describe(
-        'Maximum number of lines to read from the file (by default 2000)'
+        'The number of lines to read. Only provide if the file is too large to read at once.'
+      ),
+    offset: z
+      .number()
+      .describe(
+        'The number of lines to read. Only provide if the file is too large to read at once.'
       ),
   });
 
@@ -22,14 +27,16 @@ export function makeReadTool(repoPath: string) {
     async ({
       relativePath,
       limit = DEFAULT_FILE_READ_LINES_LIMIT,
+      offset = 0,
     }: {
       relativePath: string;
       limit: number;
+      offset: number;
     }) => {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        const data = await readFile(absolutePath, { limit });
+        const data = await readFile(absolutePath, { limit, offset });
 
         return data;
       } catch (err: any) {
