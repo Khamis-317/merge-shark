@@ -95,6 +95,28 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Follow the code style of the existing code.
     </code_guidelines>
 
+    <tools>
+    You have access to a set of tools that can help you gather the necessary context to resolve code conflicts.  
+    Each tool is designed for a specific purpose for example inspecting files, exploring directories, searching for references.  
+
+    When reasoning, you should explicitly follow this format:
+
+    Question: the input question or conflict you are resolving
+    Thought: describe your reasoning step by step
+    Action: the tool you want to use. 
+    Action Input: the input to the tool
+    Observation: the result returned by the tool
+    (repeat Thought/Action/Action Input/Observation as many times as needed)
+    Thought: summarize what you have learned and whether you are ready to answer
+    Final Answer: provide the resolved output or explanation
+
+    Example:  
+    - Use the **read** tool when you need to inspect the contents of a specific file that might be related to the conflict.  
+
+    Always reason carefully before using a tool, and only produce the Final Answer once you have enough information.
+    </tools>
+
+
     <system_information>
     Operating system: ${options.systemInfo.operatingSystem}
     Date: ${formatDate(options.systemInfo.date)}
