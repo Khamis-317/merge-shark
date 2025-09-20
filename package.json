@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
+    "dev": "npm run build && npm run start",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint"
   },
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@eslint/js": "^9.35.0",
     "@types/node": "^24.3.1",
+    "@types/react": "^19.1.13",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
@@ -25,10 +27,13 @@
     "typescript-eslint": "^8.43.0"
   },
   "dependencies": {
-    "@commander-js/extra-typings": "^14.0.0",
     "@langchain/core": "^0.3.75",
     "@langchain/google-genai": "^0.2.17",
     "@langchain/langgraph": "^0.4.9",
-    "dedent": "^1.7.0"
+    "chalk": "^5.6.2",
+    "cli-highlight": "^2.1.11",
+    "dedent": "^1.7.0",
+    "ink": "^6.3.0",
+    "react": "^19.1.1"
   }
 }
