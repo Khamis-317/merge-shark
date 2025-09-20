@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import path from 'node:path';
 import type { FileConflicts } from '../../model/resolution.js';
-import { CodeDiff } from './conflict-view.js';
+import { CodeDiff } from './code-diff.js';
 
 export interface FileDiffProps {
   file: FileConflicts;

@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import path from 'node:path';
-import { ConflictView } from './conflict-view.js';
+import { CodeDiff } from './code-diff.js';
 import type { Resolutions } from '../../model/resolution.js';
 
 export interface ResolutionReviewerProps {
@@ -86,7 +86,7 @@ export function ResolutionReviewer({
           </Text>
         </Box>
 
-        <ConflictView conflict={conflict} language={language} />
+        <CodeDiff conflict={conflict} language={language} />
       </Box>
 
       <Box marginTop={1} paddingX={1}>
