@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
     "dev": "npm run build && npm run start",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "lint": "eslint"
   },
   "keywords": [],
@@ -24,7 +24,8 @@
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.43.0",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@langchain/core": "^0.3.75",

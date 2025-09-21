@@ -37,10 +37,10 @@ export function dedent(
   const indentation = lines.at(-1)!;
 
   invariant(lines[0]!.length === 0, 'First line must be empty');
-  invariant(isSpaces(indentation), 'Last line must only contain whitespace');
+  invariant(isSpaces(indentation), 'Last line must only contain spaces');
 
   return lines
-    .slice(0, -1)
+    .slice(1, -1)
     .map((line) => {
       invariant(
         line.startsWith(indentation),
