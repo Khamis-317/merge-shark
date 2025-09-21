@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import path from 'path';
 import { checkEditValidity, type FileEdit } from '../utils/edit-file.js';
 

@@ -18,6 +18,7 @@ import {
   gitMergeBase,
   formatMergeInfo,
 } from '../utils/git-utils.js';
+import { dedent } from '../utils/dedent.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -71,10 +72,10 @@ export async function resolveConflicts(repoPath: string) {
     mergeInfo,
   });
 
-  const userPrompt = `
+  const userPrompt = dedent`
     Resolve the conflicts in the following files:
     ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
-  `;
+    `;
 
   console.log('SYSTEM PROMPT:\n');
   console.log(systemPrompt);

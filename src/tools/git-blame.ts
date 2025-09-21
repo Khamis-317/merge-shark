@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import { gitBlame } from '../utils/git-utils.js';
 
 export function makeGitBlameTool(repoPath: string) {

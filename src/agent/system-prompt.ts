@@ -1,4 +1,4 @@
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import { formatDate } from '../utils/format-date.js';
 
 export interface SystemInfo {
@@ -98,7 +98,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     Date: ${formatDate(options.systemInfo.date)}
     Current working directory: ${options.systemInfo.workingDirectory}
     </system_information>
-  `;
+    `;
 
   return prompt;
 }

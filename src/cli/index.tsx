@@ -1,6 +1,6 @@
 import { render } from 'ink';
-import dedent from 'dedent';
 import { SharkApp } from './components/shark-app.js';
+import { dedent } from '../utils/dedent.js';
 
 export async function start(repoPath: string) {
   console.log(`Resolving conflict in ${repoPath}`);
@@ -28,7 +28,7 @@ export async function start(repoPath: string) {
                     return fetch(\`https://jsonplaceholder.typicode.com/users/\${userID}\`);
                 >>>>>>> feat/random
                 }
-            `,
+                `,
             resolution: dedent`
                 export function getUser(param = 1) {
                     let userID = 1;
@@ -43,7 +43,7 @@ export async function start(repoPath: string) {
 
                     return fetch(\`https://jsonplaceholder.typicode.com/users/\${userID}\`);
                 }
-            `,
+                `,
           },
         ],
       },
