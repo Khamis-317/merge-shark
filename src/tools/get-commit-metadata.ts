@@ -40,7 +40,7 @@ export function makeGetCommitMetadata(repoPath: string){
 
             When to use:
             - To understand the purpose and intent of changes.
-            - Commit hashes can be obtained from HEAD, MERGE_HEAD, merge-base, or "get_recent_commits_for_file"
+            - Commit hashes can be obtained from HEAD, MERGE_HEAD, merge-base (you can get those from the tool named "get_merge_info)."
         `,
         schema: commitMetadataSchema,
     }
@@ -57,18 +57,6 @@ function formatCommitMetadataAsXML(commitHash: string, metadata: { author: strin
 </commit_metadata>`;
 }
 
-const repoPath = "/home/khamis/Desktop/GP/Merge-Shark"; // adjust to your repo
-  const commitHash = "HEAD"; // replace with a real commit
 
-  const toolInstance = makeGetCommitMetadata(repoPath);
-
-  // The tool expects input shaped according to the schema
-  toolInstance.invoke({ commitHash })
-    .then(result => {
-      console.log("Tool output:\n", result);
-    })
-    .catch(err => {
-      console.error("Error running tool:", err);
-    });
 
 

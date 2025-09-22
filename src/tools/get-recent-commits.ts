@@ -53,7 +53,7 @@ export function makeGetRecentCommitsTool(repoPath: string){
             </commits>
 
             When to use:
-            - To understand recent history of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD) or base branch(you can get that from the tool named "get_merge_base").
+            - To understand recent history of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD) or base branch(you can get those from the tool named "get_merge_info").
             - The returned commit hashes can be fed into "get_commit_message", "get_changed_files_in_commit", or "show_commit_diff".
         `,
         schema: recentCommitsSchema,

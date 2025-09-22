@@ -25,16 +25,16 @@ export async function getMergeBase(repoPath: string, ours: string, theirs: strin
 }
 
 
-// export async function getFileContentFromCommit(repoPath: string, commit: string, filePath: string) {
-//   const command = `git show ${commit}:${filePath}`;
-//   try {
-//     const result = await exec(command, { cwd: repoPath });
-//     return result.stdout.toString().trim();
-//   } catch (error: any) {
-//     // File doesn't exist in this commit
-//     return null;
-//   }
-// }
+export async function getFileContentFromCommit(repoPath: string, commit: string, filePath: string) {
+  const command = `git show ${commit}:${filePath}`;
+  try {
+    const result = await exec(command, { cwd: repoPath });
+    return result.stdout.toString().trim();
+  } catch (error: any) {
+    // File doesn't exist in this commit
+    return null;
+  }
+}
 
 export async function getLastNCommitsForFile(repoPath: string, filePath: string, branchRef: string, n: number)
             : Promise<{ commit_hash: string; message: string }[]> {
