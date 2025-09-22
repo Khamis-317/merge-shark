@@ -1,8 +1,8 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import fs from 'node:fs/promises';
 import path from 'path';
+import { editFile } from '../utils/edit-file.js';
 
 export function makeEditTool(repoPath: string) {
   const editSchema = z.object({
@@ -30,13 +30,9 @@ export function makeEditTool(repoPath: string) {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        const data = await fs.readFile(absolutePath, 'utf-8');
+        editFile(absolutePath, conflict, resolution);
 
-        const editedData = data.replace(conflict, resolution);
-
-        fs.writeFile(absolutePath, editedData, 'utf8');
-
-        return `EDITED SUCCESSFULLY:\n\n${editedData}`;
+        return null;
       } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error editing file: ${err.message}`;
