@@ -1,6 +1,8 @@
 import { exec } from './exec.js';
 
 
+export const DEFAULT_MAX_COMMITS_PER_FILE = 7;
+
 export async function getMergeTarget(repoPath: string): Promise<string> {
   const command: string = "git rev-parse MERGE_HEAD";
   const commit = await exec(command, { cwd: repoPath });
@@ -64,22 +66,50 @@ export async function getLastNCommitsForFile(repoPath: string, filePath: string,
 }
 
 
+export async function getCommitMetaData(repoPath: string, commitHash: string):
+            Promise<{ author: string; date: string; fullMessage: string }> {
+  const command = `git log -1 --pretty=format:"%an%n%ad%n%B" ${commitHash}`;
+  const output = await exec(command, { cwd: repoPath });
 
+  if (output.stderr) {
+    throw new Error(output.stderr);
+  }
+
+  const lines = output.stdout.toString().trim().split("\n");
+  if (lines.length < 2) {
+    throw new Error("Unexpected git log output format");
+  }
+
+  const author = lines[0] || "";
+  const date = lines[1] || "";
+  const fullMessage = lines.slice(2).join("\n").trim() || "";
+
+  return { author, date, fullMessage };
+}
+
+
+
+
+
+
+// const commitHash: string = "";
 // const repoPath: string = "";
-// const filePath: string = "";
-// const n: number = 5;
-// const branchRef: string = "HEAD";
-// const result = await getLastNCommitsForFile(repoPath, filePath, branchRef, n);
-// console.log(result);
-// // const mergeTarget: string = await getMergeTarget(repoPath);
-// // const mergeBase: string = await getMergeBase(repoPath, "HEAD", mergeTarget);
-// // const fileContentTarget = await getFileContentFromCommit(repoPath, mergeTarget, filePath );
-// // const fileContentBase = await getFileContentFromCommit(repoPath, mergeBase, filePath );
-// // console.log("Content we are merging with");
-// // console.log("--------------");
-// // console.log(fileContentTarget);
-// // console.log("--------------");
-// // console.log("Content of the base");
-// // console.log("--------------");
-// // console.log(fileContentBase);
-// // console.log("--------------");
+// const output = await getCommitMetaData(repoPath,commitHash);
+// console.log(output);
+// // const filePath: string = "";
+// // const n: number = 5;
+// // const branchRef: string = "HEAD";
+// // const result = await getLastNCommitsForFile(repoPath, filePath, branchRef, n);
+// // console.log(result);
+// // // const mergeTarget: string = await getMergeTarget(repoPath);
+// // // const mergeBase: string = await getMergeBase(repoPath, "HEAD", mergeTarget);
+// // // const fileContentTarget = await getFileContentFromCommit(repoPath, mergeTarget, filePath );
+// // // const fileContentBase = await getFileContentFromCommit(repoPath, mergeBase, filePath );
+// // // console.log("Content we are merging with");
+// // // console.log("--------------");
+// // // console.log(fileContentTarget);
+// // // console.log("--------------");
+// // // console.log("Content of the base");
+// // // console.log("--------------");
+// // // console.log(fileContentBase);
+// // // console.log("--------------");

@@ -1,28 +1,25 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import { getLastNCommitsForFile } from '../utils/git-utils.js';
+import { getLastNCommitsForFile, DEFAULT_MAX_COMMITS_PER_FILE } from '../utils/git-utils.js';
 
 
 export function makeGetRecentCommitsTool(repoPath: string){
     const recentCommitsSchema = z.object({
         relativePath: z
-          .string()
-          .describe(
-            'The relative path to the file you want to read (for example src/index.ts)'
-          ),
+          .string(),
         branchRef: z
           .string()
-          .optional()
-          .default('HEAD'),
+          .default('HEAD')
+          .optional(),
         n: z
           .number()
-          .default(7)
+          .default(DEFAULT_MAX_COMMITS_PER_FILE)
           .optional(),
       });
 
    return tool (
-    async ({ relativePath, branchRef = 'HEAD', n = 7 } : {relativePath: string, branchRef?: string, n?: number}) => {
+     async ({ relativePath, branchRef = 'HEAD', n = DEFAULT_MAX_COMMITS_PER_FILE }) => { 
         try {
             const data = await getLastNCommitsForFile(repoPath, relativePath, branchRef, n);
             return formatCommitsAsXML(data);
@@ -30,7 +27,7 @@ export function makeGetRecentCommitsTool(repoPath: string){
         if (err instanceof Error) {
           return `Error retrieving commits for file: ${relativePath}, error: ${err.message}`;
         }
-        return `An unknown error occured: ${err}`;
+        return `An unknown error occurred: ${err}`;
       }
     },
     {
@@ -40,7 +37,7 @@ export function makeGetRecentCommitsTool(repoPath: string){
             Input:
             - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
             - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
-            - n: maximum number of commits to return - defaults to 7
+            - n: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 
             Output:
             Returns commits in XML format:
@@ -72,7 +69,7 @@ function formatCommitsAsXML(commits: { commit_hash: string; message: string }[])
 
   const commitsXML = commits
     .map(commit => 
-      `  <commit>\n    <hash>${commit.commit_hash}</hash>\n    <message>${commit.message}</message>\n  </commit>`
+      `<commit>\n<hash>${commit.commit_hash}</hash>\n<message>${commit.message}</message>\n</commit>`
     )
     .join('\n');
 
