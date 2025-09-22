@@ -9,6 +9,8 @@ import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
 import { makeGetCommitMetadata } from '../tools/get-commit-metadata.js';
+import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
+
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -28,7 +30,8 @@ export async function resolveConflicts(repoPath: string) {
 
   const tools: DynamicStructuredTool[] = [makeReadTool(repoPath),
      makeGetRecentCommitsTool(repoPath), 
-     makeGetCommitMetadata(repoPath)];
+     makeGetCommitMetadata(repoPath),
+      makeGetMergeInfoTool(repoPath)];
 
   const agent = createReactAgent({
     llm,
