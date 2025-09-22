@@ -1,0 +1,80 @@
+import { tool } from '@langchain/core/tools';
+import { z } from 'zod';
+import dedent from 'dedent';
+import { getLastNCommitsForFile } from '../utils/git-utils.js';
+
+
+export function makeGetRecentCommitsTool(repoPath: string){
+    const recentCommitsSchema = z.object({
+        relativePath: z
+          .string()
+          .describe(
+            'The relative path to the file you want to read (for example src/index.ts)'
+          ),
+        branchRef: z
+          .string()
+          .optional()
+          .default('HEAD'),
+        n: z
+          .number()
+          .default(7)
+          .optional(),
+      });
+
+   return tool (
+    async ({ relativePath, branchRef = 'HEAD', n = 7 } : {relativePath: string, branchRef?: string, n?: number}) => {
+        try {
+            const data = await getLastNCommitsForFile(repoPath, relativePath, branchRef, n);
+            return formatCommitsAsXML(data);
+        }catch (err: unknown) {
+        if (err instanceof Error) {
+          return `Error retrieving commits for file: ${relativePath}, error: ${err.message}`;
+        }
+        return `An unknown error occured: ${err}`;
+      }
+    },
+    {
+        name: 'get_recent_commits_for_file',
+        description: dedent`
+          Retrieves the last N commits that modified a specific file in a branch.
+            Input:
+            - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
+            - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
+            - n: maximum number of commits to return - defaults to 7
+
+            Output:
+            Returns commits in XML format:
+            <commits>
+            <commit>
+                <hash>commit_hash_here</hash>
+                <message>first line of commit message</message>
+            </commit>
+            <commit>
+                <hash>another_commit_hash</hash>
+                <message>another commit message</message>
+            </commit>
+            </commits>
+
+            When to use:
+            - To understand recent history of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD) or base branch(you can get that from the tool named "get_merge_base").
+            - The returned commit hashes can be fed into "get_commit_message", "get_changed_files_in_commit", or "show_commit_diff".
+        `,
+        schema: recentCommitsSchema,
+    }
+   )
+}
+
+
+function formatCommitsAsXML(commits: { commit_hash: string; message: string }[]): string {
+  if (commits.length === 0) {
+    return '<commits>\n  <message>No commits found for this file</message>\n</commits>';
+  }
+
+  const commitsXML = commits
+    .map(commit => 
+      `  <commit>\n    <hash>${commit.commit_hash}</hash>\n    <message>${commit.message}</message>\n  </commit>`
+    )
+    .join('\n');
+
+  return `<commits>\n${commitsXML}\n</commits>`;
+}

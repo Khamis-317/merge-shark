@@ -7,6 +7,7 @@ import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
+import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -24,7 +25,7 @@ export async function resolveConflicts(repoPath: string) {
     temperature: 0.2,
   });
 
-  const tools: DynamicStructuredTool[] = [makeReadTool(repoPath)];
+  const tools: DynamicStructuredTool[] = [makeReadTool(repoPath), makeGetRecentCommitsTool(repoPath)];
 
   const agent = createReactAgent({
     llm,
