@@ -5,48 +5,49 @@ export const DEFAULT_MAX_COMMITS_PER_FILE = 7;
 
 export async function getMergeTarget(repoPath: string): Promise<string> {
   const command: string = "git rev-parse MERGE_HEAD";
-  const commit = await exec(command, { cwd: repoPath });
+  const result = await exec(command, { cwd: repoPath });
 
-  if (commit.stderr) {
-    throw new Error(commit.stderr); 
+  if (result.stderr) {
+    throw new Error(result.stderr); 
   }
 
-  return commit.stdout.toString().trim();
+  return result.stdout.toString().trim();
 }
 
 export async function getMergeBase(repoPath: string, ours: string, theirs: string): Promise<string> {
   const command: string = `git merge-base ${ours} ${theirs}`;
-  const commit = await exec(command, { cwd: repoPath });
+  const result = await exec(command, { cwd: repoPath });
 
-  if (commit.stderr) {
-    throw new Error(commit.stderr);
+  if (result.stderr) {
+    throw new Error(result.stderr);
   }
-  return commit.stdout.toString().trim();
+  return result.stdout.toString().trim();
 }
 
 
 export async function getFileContentFromCommit(repoPath: string, commit: string, filePath: string) {
   const command = `git show ${commit}:${filePath}`;
-  try {
-    const result = await exec(command, { cwd: repoPath });
-    return result.stdout.toString().trim();
-  } catch (error: any) {
-    // File doesn't exist in this commit
+  const result = await exec(command, { cwd: repoPath });
+  
+  if (result.stderr) {
+    // File doesn't exist in this commit.
     return null;
   }
+  
+  return result.stdout.toString().trim();
 }
 
 export async function getLastNCommitsForFile(repoPath: string, filePath: string, branchRef: string, n: number)
             : Promise<{ commit_hash: string; message: string }[]> {
 
   const command = `git log -n ${n} --pretty=format:"%H %s" ${branchRef} -- ${filePath}`;
-  const output = await exec(command, { cwd: repoPath });
+  const result = await exec(command, { cwd: repoPath });
 
-  if (output.stderr) {
-    throw new Error(output.stderr);
+  if (result.stderr) {
+    throw new Error(result.stderr);
   }
 
-  const commits = output.stdout.toString().trim();
+  const commits = result.stdout.toString().trim();
   if (!commits) {
     return [];
   }
@@ -69,13 +70,13 @@ export async function getLastNCommitsForFile(repoPath: string, filePath: string,
 export async function getCommitMetaData(repoPath: string, commitHash: string):
             Promise<{ author: string; date: string; fullMessage: string }> {
   const command = `git log -1 --pretty=format:"%an%n%ad%n%B" ${commitHash}`;
-  const output = await exec(command, { cwd: repoPath });
+  const result = await exec(command, { cwd: repoPath });
 
-  if (output.stderr) {
-    throw new Error(output.stderr);
+  if (result.stderr) {
+    throw new Error(result.stderr);
   }
 
-  const lines = output.stdout.toString().trim().split("\n");
+  const lines = result.stdout.toString().trim().split("\n");
   if (lines.length < 2) {
     throw new Error("Unexpected git log output format");
   }
@@ -88,7 +89,16 @@ export async function getCommitMetaData(repoPath: string, commitHash: string):
 }
 
 
+export async function getDiffForFile(repoPath: string, commitHashX: string, commitHashY: string, filePath: string): Promise<string | null> {
+  const command = `git diff ${commitHashX} ${commitHashY} -- ${filePath}`;
+  const result = await exec(command, { cwd: repoPath });
 
+  if (result.stderr) {
+    throw new Error(result.stderr);
+  }
+
+  return result.stdout.toString().trim();
+}
 
 
 

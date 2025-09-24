@@ -71,18 +71,3 @@ function formatFileContentAsXML(commitHash: string, relativePath: string, conten
 }
 
 
-
-
-// const repoPath = ""; 
-//   const commitHash = """; 
-//   const relativePath = "";
-//   const toolInstance = makeGetFileAtCommitTool(repoPath);
-
-  
-//   toolInstance.invoke({ commitHash, relativePath })
-//     .then(result => {
-//       console.log("Tool output:\n", result);
-//     })
-//     .catch(err => {
-//       console.error("Error running tool:", err);
-//     });
