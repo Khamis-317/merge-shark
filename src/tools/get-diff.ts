@@ -76,17 +76,3 @@ ${diffOutput}
 
 
 
-// const repoPath = ""; 
-//   const from: string = "HEAD";
-//   const to:string = "HEAD"
-//   const relativePath = "src/agent/index.ts";
-//   const toolInstance = makeGetDiffTool(repoPath);
-
-  
-//   toolInstance.invoke({ from, to , relativePath})
-//     .then(result => {
-//       console.log("Tool output:\n", result);
-//     })
-//     .catch(err => {
-//       console.error("Error running tool:", err);
-//     });

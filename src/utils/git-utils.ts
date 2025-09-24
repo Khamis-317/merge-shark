@@ -30,7 +30,6 @@ export async function getFileContentFromCommit(repoPath: string, commit: string,
   const result = await exec(command, { cwd: repoPath });
   
   if (result.stderr) {
-    // File doesn't exist in this commit.
     return null;
   }
   
@@ -100,26 +99,30 @@ export async function getDiffForFile(repoPath: string, commitHashX: string, comm
   return result.stdout.toString().trim();
 }
 
+export async function getChangedFilesInCommit(repoPath: string, commitHash: string): Promise<{ status: string; filePath: string }[]> {
+  const command = `git diff-tree --no-commit-id --name-status -r ${commitHash}`;
+  const result = await exec(command, { cwd: repoPath });
+
+  if (result.stderr) {
+    throw new Error(result.stderr);
+  }
+
+  const output = result.stdout.toString().trim();
+  if (!output) {
+    return [];
+  }
+
+  return output
+    .split("\n")
+    .map(line => {
+      const tabIndex = line.indexOf("\t");
+      return {
+        status: line.substring(0, tabIndex),
+        filePath: line.substring(tabIndex + 1)
+      };
+    });
+}
 
 
-// const commitHash: string = "";
-// const repoPath: string = "";
-// const output = await getCommitMetaData(repoPath,commitHash);
-// console.log(output);
-// // const filePath: string = "";
-// // const n: number = 5;
-// // const branchRef: string = "HEAD";
-// // const result = await getLastNCommitsForFile(repoPath, filePath, branchRef, n);
-// // console.log(result);
-// // // const mergeTarget: string = await getMergeTarget(repoPath);
-// // // const mergeBase: string = await getMergeBase(repoPath, "HEAD", mergeTarget);
-// // // const fileContentTarget = await getFileContentFromCommit(repoPath, mergeTarget, filePath );
-// // // const fileContentBase = await getFileContentFromCommit(repoPath, mergeBase, filePath );
-// // // console.log("Content we are merging with");
-// // // console.log("--------------");
-// // // console.log(fileContentTarget);
-// // // console.log("--------------");
-// // // console.log("Content of the base");
-// // // console.log("--------------");
-// // // console.log(fileContentBase);
-// // // console.log("--------------");
+
+
