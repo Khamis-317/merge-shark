@@ -44,49 +44,11 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     3. **Identify Patterns**: Look for similar code patterns in the codebase to understand conventions
     4. **Evaluate Impact**: Assess the potential impact of each resolution option
     5. **Propose Solution**: Generate a resolution that maintains code consistency and functionality
+    6. **Apply Solution**: Update the files to reflect the approved resolution.
     </resolution_steps>
 
     <resolution_format>
-    Once you figure out the resolution for each conflict, you should output the resolution in the following format:
-    <resolutions>
-    For each file with conflicts:
-    <file name="{file name relative to the current working directory}">
-    For each conflict:
-    <conflict>
-    {conflict in the format of the conflict_format, read the conflict AS IS from the file}
-    </conflict>
-    <resolution>
-    The code to replace the conflict code with. Don't include any other text or formatting, this code will be added as is to the file.
-    </resolution>
-    </file name="{file name}">
-    </resolutions>
-
-    <example>
-    Conflicts:
-    <file name="Gemfile">
-    <<<<<<< HEAD
-    gem 'bigdecimal'
-    =======
-    gem 'bigdecimal', '~> 3.2.2'
-    >>>>>>> master
-    </file name="Gemfile">
-
-    Resolution:
-    <resolutions>
-    <file name="Gemfile">
-    <conflict>
-    <<<<<<< HEAD
-    gem 'bigdecimal'
-    =======
-    gem 'bigdecimal', '~> 3.2.2'
-    >>>>>>> master
-    </conflict>
-    <resolution>
-    gem 'bigdecimal', '~> 3.2.2'
-    </resolution>
-    </file name="Gemfile">
-    </resolutions>
-    </example>
+    Once you figure out the resolution for each conflict apply those resolutions using edit tool.
     </resolution_format>
 
     <code_guidelines>
@@ -106,7 +68,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     Action: the tool you want to use. 
     Action Input: the input to the tool
     Observation: the result returned by the tool
-    (repeat Thought/Action/Action Input/Observation as many times as needed)
+
     Thought: summarize what you have learned and whether you are ready to answer
     Final Answer: provide the resolved output or explanation
 
