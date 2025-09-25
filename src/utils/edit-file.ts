@@ -9,6 +9,8 @@ export type fileEdit = {
   replaceAll: boolean;
 };
 
+export const edits: fileEdit[] = [];
+
 /**
  * Edits a file.
  *
