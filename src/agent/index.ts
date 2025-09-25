@@ -7,6 +7,7 @@ import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { makeEditTool } from '../tools/edit.js';
+import type { fileEdit } from '../utils/edit-file.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -18,6 +19,7 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
+  const edits: fileEdit[] = [];
 
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
@@ -26,7 +28,7 @@ export async function resolveConflicts(repoPath: string) {
 
   const tools: DynamicStructuredTool[] = [
     makeReadTool(repoPath),
-    makeEditTool(repoPath),
+    makeEditTool(repoPath, edits),
   ];
 
   const agent = createReactAgent({
@@ -68,4 +70,6 @@ export async function resolveConflicts(repoPath: string) {
 
   console.log('\n\nRESPONSE:\n');
   console.log(result);
+
+  console.log(edits);
 }
