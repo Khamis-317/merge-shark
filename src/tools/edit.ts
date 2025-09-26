@@ -2,9 +2,9 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import path from 'path';
-import { checkEditValidity, type fileEdit } from '../utils/edit-file.js';
+import { checkEditValidity, type FileEdit } from '../utils/edit-file.js';
 
-export function makeEditTool(repoPath: string, edits: fileEdit[]) {
+export function makeEditTool(repoPath: string, edits: FileEdit[]) {
   const editSchema = z.object({
     relativePath: z.string(),
     oldText: z.string(),
@@ -27,14 +27,14 @@ export function makeEditTool(repoPath: string, edits: fileEdit[]) {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        const editCheck = await checkEditValidity(
+        const editError = await checkEditValidity(
           absolutePath,
           oldText,
           replaceAll
         );
-        if (editCheck) return editCheck;
+        if (editError) return editError;
 
-        const edit: fileEdit = {
+        const edit: FileEdit = {
           path: absolutePath,
           oldText,
           newText,
@@ -60,6 +60,7 @@ export function makeEditTool(repoPath: string, edits: fileEdit[]) {
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
         The edit will FAIL if 'oldText' is not found or is not unique in the file.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
+        The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
       `,
       schema: editSchema,
     }
