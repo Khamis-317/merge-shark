@@ -9,8 +9,6 @@ export interface FileEdit {
   replaceAll: boolean;
 }
 
-export const edits: FileEdit[] = [];
-
 /**
  * Edits a file.
  *
