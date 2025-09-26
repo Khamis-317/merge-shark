@@ -1,12 +1,13 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import path from 'node:path';
-import dedent from 'dedent';
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
+import { makeEditTool } from '../tools/edit.js';
+import type { FileEdit } from '../utils/edit-file.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -18,13 +19,17 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
+  const edits: FileEdit[] = [];
 
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
     temperature: 0.2,
   });
 
-  const tools: DynamicStructuredTool[] = [makeReadTool(repoPath)];
+  const tools: DynamicStructuredTool[] = [
+    makeReadTool(repoPath),
+    makeEditTool(repoPath, edits),
+  ];
 
   const agent = createReactAgent({
     llm,
@@ -39,7 +44,7 @@ export async function resolveConflicts(repoPath: string) {
     },
   });
 
-  const userPrompt = dedent`
+  const userPrompt = `
     Resolve the conflicts in the following files:
     ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
   `;
@@ -65,4 +70,6 @@ export async function resolveConflicts(repoPath: string) {
 
   console.log('\n\nRESPONSE:\n');
   console.log(result);
+
+  return edits;
 }
