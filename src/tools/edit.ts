@@ -58,7 +58,6 @@ export function makeEditTool(repoPath: string, edits: FileEdit[]) {
         You MUST use the 'read' tool BEFORE calling this tool.
         Always preserve the exact formatting (indentation, tabs, spaces) of the text you replace.
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
-        The edit will FAIL if 'oldText' is not found or is not unique in the file.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
         The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
       `,
