@@ -8,6 +8,7 @@ import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { makeEditTool } from '../tools/edit.js';
 import type { FileEdit } from '../utils/edit-file.js';
+import { makeLsTool } from '../tools/ls.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -29,6 +30,7 @@ export async function resolveConflicts(repoPath: string) {
   const tools: DynamicStructuredTool[] = [
     makeReadTool(repoPath),
     makeEditTool(repoPath, edits),
+    makeLsTool(repoPath),
   ];
 
   const agent = createReactAgent({
