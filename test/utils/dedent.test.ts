@@ -52,4 +52,58 @@ describe('dedent', () => {
           `;
     }).throws('Line must start with indentation');
   });
+
+  it('dedents a placeholder in the middle of a line', () => {
+    const placeholder = 'foo bar';
+    const result = dedent`
+      hello ${placeholder}
+      world
+      `;
+
+    expect(result).toBe('hello foo bar\nworld');
+  });
+
+  it('dedents a multiline placeholder at line start', () => {
+    const placeholder = 'foo\nbar\nbaz';
+    const result = dedent`
+      hello
+      ${placeholder}
+      world
+      `;
+
+    expect(result).toBe('hello\nfoo\nbar\nbaz\nworld');
+  });
+
+  it('dedents a multiline placeholder in the middle of a line', () => {
+    const placeholder = 'foo\nbar\nbaz';
+    const result = dedent`
+      hello
+      interesting ${placeholder}
+      world
+      `;
+
+    expect(result).toBe('hello\ninteresting foo\nbar\nbaz\nworld');
+  });
+
+  it('dedents a multiline placeholder indented at line start', () => {
+    const placeholder = 'foo\nbar\nbaz';
+    const result = dedent`
+      hello
+        ${placeholder}
+      world
+      `;
+
+    expect(result).toBe('hello\n  foo\n  bar\n  baz\nworld');
+  });
+
+  it('dedents a multiline placeholder indented in the middle of a line', () => {
+    const placeholder = 'foo\nbar\nbaz';
+    const result = dedent`
+      hello
+        interesting ${placeholder}
+      world
+      `;
+
+    expect(result).toBe('hello\n  interesting foo\nbar\nbaz\nworld');
+  });
 });
