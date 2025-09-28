@@ -13,6 +13,7 @@ import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
 import { makeGetFileAtCommitTool } from '../tools/get-file-at-commit.js';
 import { makeGetDiffTool } from '../tools/get-diff.js';
 import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
+import { makeGetBlameTool } from '../tools/get-blame-tool.js';
 
 
 export async function resolveConflicts(repoPath: string) {
@@ -37,7 +38,8 @@ export async function resolveConflicts(repoPath: string) {
      makeGetMergeInfoTool(repoPath),
      makeGetFileAtCommitTool(repoPath),
      makeGetDiffTool(repoPath),
-     makeGetChangedFilesTool(repoPath)];
+     makeGetChangedFilesTool(repoPath),
+     makeGetBlameTool(repoPath)];
 
   const agent = createReactAgent({
     llm,

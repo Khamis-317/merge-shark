@@ -87,18 +87,3 @@ function formatChangedFilesAsXML(commitHash: string, changedFiles: { status: str
 ${filesXML}
 </changed_files>`;
 }
-
-// const repoPath = ""; 
-//   const commitHash: string = "e9726c59e8a63e3a99095701c5fe5f66ad429f12";
- 
-
-//   const toolInstance = makeGetChangedFilesTool(repoPath);
-
-  
-//   toolInstance.invoke({ commitHash})
-//     .then(result => {
-//       console.log("Tool output:\n", result);
-//     })
-//     .catch(err => {
-//       console.error("Error running tool:", err);
-//     });

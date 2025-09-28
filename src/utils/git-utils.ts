@@ -123,6 +123,15 @@ export async function getChangedFilesInCommit(repoPath: string, commitHash: stri
     });
 }
 
+export async function getBlame(repoPath: string,relativePath: string, startLine: number, endLine: number): Promise<string> {
+  const command = `git blame -L ${startLine},${endLine} ${relativePath}`;
+  const result = await exec(command, { cwd: repoPath });
 
+  if (result.stderr) {
+    throw new Error(result.stderr.trim());
+  }
+
+  return result.stdout.toString().trim();
+}
 
 
