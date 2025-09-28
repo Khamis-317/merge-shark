@@ -123,7 +123,7 @@ export async function getChangedFilesInCommit(repoPath: string, commitHash: stri
     });
 }
 
-export async function getBlame(repoPath: string,relativePath: string, startLine: number, endLine: number): Promise<string> {
+export async function getBlame(repoPath: string, relativePath: string, startLine: number, endLine: number): Promise<string> {
   const command = `git blame -L ${startLine},${endLine} ${relativePath}`;
   const result = await exec(command, { cwd: repoPath });
 
@@ -135,3 +135,13 @@ export async function getBlame(repoPath: string,relativePath: string, startLine:
 }
 
 
+export async function getLastMergeCommits(repoPath: string, n: number): Promise<string> {
+  const command = `git log --merges -n ${n} --pretty=format:"%H"`;
+  const result = await exec (command, {cwd: repoPath});
+
+  if (result.stderr) {
+    throw new Error(result.stderr.trim());
+  }
+
+  return result.stdout.toString().trim();
+}

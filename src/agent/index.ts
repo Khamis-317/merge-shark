@@ -39,7 +39,8 @@ export async function resolveConflicts(repoPath: string) {
      makeGetFileAtCommitTool(repoPath),
      makeGetDiffTool(repoPath),
      makeGetChangedFilesTool(repoPath),
-     makeGetBlameTool(repoPath)];
+     makeGetBlameTool(repoPath),
+     makeGetChangedFilesTool(repoPath)];
 
   const agent = createReactAgent({
     llm,

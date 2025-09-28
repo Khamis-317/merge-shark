@@ -14,8 +14,11 @@ export function makeGetBlameTool(repoPath: string){
            try {
             const blameOutput = await getBlame(repoPath, relativePath, startLine, endLine);
             return formatBlameAsXML(relativePath, startLine, endLine, blameOutput);
-            } catch (error) {
-                return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    return `Error retrieving last merge commits: ${err.message}`;
+                }
+                return `An unknown error occurred: ${err}`;
             }
         },
         {
@@ -59,19 +62,3 @@ ${blameOutput}
 </blame>`;
 }
 
-
-// const repoPath = "/home/khamis/Desktop/GP/Merge-Shark"; 
- 
-
-// const toolInstance = makeGetBlameTool(repoPath);
-// const relativePath = "src/agent/index.ts";
-// const startLine = 200;
-// const endLine = 240;
-  
-// toolInstance.invoke({relativePath, startLine, endLine})
-// .then(result => {
-//     console.log("Tool output:\n", result);
-// })
-// .catch(err => {
-//     console.error("Error running tool:", err);
-// });
