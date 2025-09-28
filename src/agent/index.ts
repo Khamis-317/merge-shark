@@ -10,7 +10,6 @@ import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
 import { makeGetCommitMetadata } from '../tools/get-commit-metadata.js';
 import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
-import { makeGetFileAtCommitTool } from '../tools/get-file-at-commit.js';
 import { makeGetDiffTool } from '../tools/get-diff.js';
 import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGetBlameTool } from '../tools/get-blame-tool.js';
@@ -36,7 +35,6 @@ export async function resolveConflicts(repoPath: string) {
      makeGetRecentCommitsTool(repoPath), 
      makeGetCommitMetadata(repoPath),
      makeGetMergeInfoTool(repoPath),
-     makeGetFileAtCommitTool(repoPath),
      makeGetDiffTool(repoPath),
      makeGetChangedFilesTool(repoPath),
      makeGetBlameTool(repoPath),

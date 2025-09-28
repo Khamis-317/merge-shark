@@ -11,10 +11,14 @@ export function makeGetCommitMetadata(repoPath: string){
       });
 
    return tool (
-    async ({commitHash}) => {
+    async ({
+        commitHash
+    }: {
+        commitHash: string;
+    }) => {
         try {
             const data = await getCommitMetaData(repoPath, commitHash);
-            return formatCommitMetadataAsXML(commitHash, data);
+            return data;
         }catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving metadata for commit: ${commitHash}, error: ${err.message}`;
@@ -30,31 +34,18 @@ export function makeGetCommitMetadata(repoPath: string){
              commitHash: the commit hash (from HEAD, MERGE_HEAD, merge-base, or any commit hash you get from provided tools).
 
             Output:
-            Returns commit metadata in XML format exactly as shown:
-            <commit_metadata>
-                <hash>commit_hash_here</hash>
-                <author>Author Name</author>
-                <date>commit_date</date>
-                <message>Full commit message text including multiple lines if present</message>
-            </commit_metadata>
+            - Raw git output with commit metadata in the following format:
+              Line 1: Author name
+              Line 2: date
+              Line 3+: Full commit message (can be multiple lines)
 
             When to use:
-            - To understand the purpose and intent of changes.
-            - Commit hashes can be obtained from HEAD, MERGE_HEAD, merge-base (you can get those from the tool named "get_merge_info)."
+            - To understand the purpose and intent of changes
+            - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
         `,
         schema: commitMetadataSchema,
     }
    )
-}
-
-
-function formatCommitMetadataAsXML(commitHash: string, metadata: { author: string; date: string; fullMessage: string }): string {
-  return `<commit_metadata>
-  <hash>${commitHash}</hash>
-  <author>${metadata.author}</author>
-  <date>${metadata.date}</date>
-  <message>${metadata.fullMessage}</message>
-</commit_metadata>`;
 }
 
 

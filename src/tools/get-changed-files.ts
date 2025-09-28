@@ -10,10 +10,14 @@ export function makeGetChangedFilesTool(repoPath: string) {
   });
 
   return tool(
-    async ({ commitHash }) => {
+    async ({ 
+        commitHash 
+    }: {
+        commitHash: string;
+    }) => {
       try {
         const changedFiles = await getChangedFilesInCommit(repoPath, commitHash);
-        return formatChangedFilesAsXML(commitHash, changedFiles);
+        return changedFiles;
       } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving changed files for commit ${commitHash}: ${err.message}`;
@@ -27,63 +31,19 @@ export function makeGetChangedFilesTool(repoPath: string) {
         Retrieves the list of files that were changed (added, modified, deleted) in a specific commit.
         
         Input:
-        - commitHash: the commit hash to get changed files for (from HEAD, MERGE_HEAD, merge-base, or any commit hash you get from provided tools)
+        - commitHash: the commit hash to get changed files for.
 
         Output:
-        Returns changed files in XML format exactly as shown:
-        <changed_files count="number of changed files">
-          <commit_hash>commit_hash_here</commit_hash>
-          <file>
-            <status>M</status>
-            <path>src/index.ts</path>
-          </file>
-          <file>
-            <status>A</status>
-            <path>src/newfile.ts</path>
-          </file>
-          <file>
-            <status>D</status>
-            <path>src/oldfile.ts</path>
-          </file>
-        </changed_files>
-
-        Status meanings:
-        - A: Added
-        - M: Modified
-        - D: Deleted
-        - R: Renamed
-        - C: Copied
+        - Raw git output showing changed files with their status, one file per line.
+        - Each line format: STATUS<tab>filepath
 
         When to use:
         - To see what files were affected by a specific commit
         - To understand the scope of changes in a commit
-        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", or other git tools
-        - Use the returned file paths (relative paths) with "get_file_at_commit" or "get_diff" for detailed analysis
+        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
+        - Use the returned file paths with "get_diff", "get_recent_commits_for_file", and "get_blame" for detailed analysis of specific files
       `,
       schema: changedFilesSchema,
     }
   );
-}
-
-function formatChangedFilesAsXML(commitHash: string, changedFiles: { status: string; filePath: string }[]): string {
-  if (changedFiles.length === 0) {
-    return `<changed_files count="0">
-  <commit_hash>${commitHash}</commit_hash>
-  <message>No files changed in this commit</message>
-</changed_files>`;
-  }
-
-  const filesXML = changedFiles
-    .map(file => 
-      `  <file>
-    <status>${file.status}</status>
-    <path>${file.filePath}</path>
-  </file>`
-    )
-    .join('\n');
-
-  return `<changed_files count="${changedFiles.length}">
-  <commit_hash>${commitHash}</commit_hash>
-${filesXML}
-</changed_files>`;
 }

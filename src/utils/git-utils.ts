@@ -25,18 +25,7 @@ export async function getMergeBase(repoPath: string, ours: string, theirs: strin
 }
 
 
-export async function getFileContentFromCommit(repoPath: string, commit: string, filePath: string): Promise<string> {
-  const command = `git show ${commit}:${filePath}`;
-  const result = await exec(command, { cwd: repoPath });
-  
-  if (result.stderr) {
-    throw new Error(result.stderr);
-  }
-  
-  return result.stdout.toString().trim();
-}
-
-export async function getLastNCommitsForFile(repoPath: string, filePath: string, branchRef: string, n: number) : Promise<string> {
+export async function getLastCommitsForFile(repoPath: string, filePath: string, branchRef: string, n: number) : Promise<string> {
   const command = `git log -n ${n} --pretty=format:"%H" ${branchRef} -- ${filePath}`;
   const result = await exec(command, { cwd: repoPath });
 
@@ -104,3 +93,18 @@ export async function getLastMergeCommits(repoPath: string, n: number): Promise<
 
   return result.stdout.toString().trim();
 }
+
+
+
+export function formatMergeInfo(mergeTarget: string, mergeBase: string): string {
+  return `<merge_info>
+  <merge_target>
+    <hash>${mergeTarget}</hash>
+  </merge_target>
+  <merge_base>
+    <hash>${mergeBase}</hash>
+  </merge_base>
+</merge_info>`;
+}
+
+

@@ -11,10 +11,18 @@ export function makeGetDiffTool(repoPath: string) {
   });
 
   return tool(
-    async ({ from, to, relativePath }) => {
+    async ({ 
+        from, 
+        to, 
+        relativePath 
+    }: {
+        from: string;
+        to: string;
+        relativePath: string;
+    }) => {
       try {
         const diffOutput = await getDiffForFile(repoPath, from, to, relativePath);
-        return formatDiffAsXML(from, to, relativePath, diffOutput);
+        return diffOutput;
       } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error generating diff for ${relativePath} between ${from} and ${to}: ${err.message}`;
@@ -33,45 +41,20 @@ export function makeGetDiffTool(repoPath: string) {
         - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
 
         Output:
-        - XML with unified diff content if the file exists in either commit.
-
-        <diff>
-          <from>commit_hash_or_branch_here</from>
-          <to>commit_hash_or_branch_here</to>
-          <file_path>relative/path/to/file.ts</file_path>
-          <content>
-            Unified diff content here.
-          </content>
-        </diff>
+        - Standard git diff output showing the unified diff between the two commits for the specified file.
+        - Returns empty string if there are no differences between the commits.
 
         When to use:
-        - To see exactly what changed in a file between two commits or branches.
-        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file".
+        - To see exactly what changed in a file between two commits or branches
+        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
+        - File paths can be obtained from "get_changed_files_in_commit"
       `,
       schema: diffSchema,
     }
   );
 }
 
-function formatDiffAsXML(from: string, to: string, relativePath: string, diffOutput: string | null): string {
-  if (diffOutput === null || diffOutput.trim() === '') {
-    return `<diff>
-  <from>${from}</from>
-  <to>${to}</to>
-  <file_path>${relativePath}</file_path>
-  <content>No differences found (files are identical or file doesn't exist in both commits)</content>
-</diff>`;
-  }
 
-  return `<diff>
-  <from>${from}</from>
-  <to>${to}</to>
-  <file_path>${relativePath}</file_path>
-  <content>
-${diffOutput}
-  </content>
-</diff>`;
-}
 
 
 

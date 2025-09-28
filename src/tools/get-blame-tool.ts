@@ -10,10 +10,18 @@ export function makeGetBlameTool(repoPath: string){
     });
 
     return tool(
-        async ({relativePath, startLine, endLine}) =>{
+        async ({
+            relativePath,
+            startLine,
+            endLine
+        }: {
+            relativePath: string;
+            startLine: number;
+            endLine: number;
+        }) => {
            try {
             const blameOutput = await getBlame(repoPath, relativePath, startLine, endLine);
-            return formatBlameAsXML(relativePath, startLine, endLine, blameOutput);
+            return blameOutput;
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     return `Error retrieving last merge commits: ${err.message}`;
@@ -24,7 +32,7 @@ export function makeGetBlameTool(repoPath: string){
         {
             name: 'get_blame',
             description: dedent`
-                Retrieves git blame information for a specific line range in a file.
+                Retrieves git blame information for a specific line range in a file
 
                 Input:
                 - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
@@ -32,16 +40,11 @@ export function makeGetBlameTool(repoPath: string){
                 - endLine: ending line number (1-based, inclusive)
 
                 Output:
-                - XML with blame information showing who last modified each line and when.
-
-                <blame>
-                  <file_path>relative/path/to/file.ts</file_path>
-                  <line_range>startLine-endLine</line_range>
-                  <content>
-                    Git blame standared output showing commit hash, author, date, and line content for each line.
-                  </content>
-                </blame>
-
+                - Raw git blame output showing commit info and line content for each line in the range
+                - Each line format: commit_hash (author timestamp line_number) line_content
+                - Shows who last modified each line, when, and the actual line content
+                - Returns empty string if file doesn't exist or line range is invalid
+                
                 When to use:
                 - To identify who last modified specific lines in a file
                 - To understand the history of changes for a particular code section
@@ -51,14 +54,3 @@ export function makeGetBlameTool(repoPath: string){
         }
     );
 }
-
-function formatBlameAsXML(relativePath: string, startLine: number, endLine: number, blameOutput: string | null): string {
-    return `<blame>
-  <file_path>${relativePath}</file_path>
-  <line_range>${startLine}-${endLine}</line_range>
-  <content>
-${blameOutput}
-  </content>
-</blame>`;
-}
-

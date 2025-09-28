@@ -12,7 +12,11 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
     });
 
     return tool(
-        async ({ n = DEFAULT_MAX_COMMITS_PER_FILE }) => {
+        async ({ 
+            n = DEFAULT_MAX_COMMITS_PER_FILE 
+        }: {
+            n: number;
+        }) => {
             try {
                 const mergeCommitsOutput = await getLastMergeCommits(repoPath, n);
                 return mergeCommitsOutput;
@@ -37,24 +41,11 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
 
                 When to use:
                 - To find recent merge commits that integrated branches
-                - You can use the returned commit hashes with other git tools.
+                - Provides insight into how past merges were handled.
+                - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
             `,
             schema: lastMergeCommitsSchema,
         }
     );
 }
 
-
-// const repoPath = ""; 
- 
-
-// const toolInstance = makeGetLastMergeCommitsTool(repoPath);
-
-//   const n = 25;
-// toolInstance.invoke({n})
-// .then(result => {
-//     console.log("Tool output:\n", result);
-// })
-// .catch(err => {
-//     console.error("Error running tool:", err);
-// });

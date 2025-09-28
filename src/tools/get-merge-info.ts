@@ -1,7 +1,7 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import { getMergeBase, getMergeTarget } from '../utils/git-utils.js';
+import { getMergeBase, getMergeTarget, formatMergeInfo} from '../utils/git-utils.js';
 
 
 export function makeGetMergeInfoTool(repoPath: string) {
@@ -11,7 +11,9 @@ export function makeGetMergeInfoTool(repoPath: string) {
       try {
         const mergeTarget = await getMergeTarget(repoPath);
         const mergeBase = await getMergeBase(repoPath, "HEAD", mergeTarget);
-        return formatMergeInfoAsXML(mergeTarget, mergeBase);
+        
+        return formatMergeInfo(mergeTarget, mergeBase);
+
       } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving merge info: ${err.message}`;
@@ -23,7 +25,7 @@ export function makeGetMergeInfoTool(repoPath: string) {
       name: 'get_merge_info',
       description: dedent`
         Gets both the merge target (MERGE_HEAD) and merge base commit hashes.
-        
+    
         Input:
         - No input required
 
@@ -39,11 +41,10 @@ export function makeGetMergeInfoTool(repoPath: string) {
         </merge_info>
 
         When to use:
-        - To get both the commit being merged (MERGE_HEAD) and the common ancestor (merge base)
         - Essential for understanding the full context of a merge conflict
         - The merge target shows what changes are being brought in
         - The merge base shows the common starting point for both branches
-        - Both hashes can be used with other git tools for detailed analysis
+        - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
       `,
       schema: mergeInfoSchema,
     }
@@ -52,13 +53,3 @@ export function makeGetMergeInfoTool(repoPath: string) {
 
 
 
-function formatMergeInfoAsXML(mergeTarget: string, mergeBase: string): string {
-  return `<merge_info>
-  <merge_target>
-    <hash>${mergeTarget}</hash>
-  </merge_target>
-  <merge_base>
-    <hash>${mergeBase}</hash>
-  </merge_base>
-</merge_info>`;
-}
