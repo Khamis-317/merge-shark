@@ -6,23 +6,9 @@ import path from 'path';
 
 export function makeReadTool(repoPath: string) {
   const readSchema = z.object({
-    relativePath: z
-      .string()
-      .describe(
-        'The relative path to the file you want to read (for example src/index.ts)'
-      ),
-    limit: z
-      .number()
-      .optional()
-      .describe(
-        `The number of lines to read. Only provide if the file has more than ${DEFAULT_FILE_READ_LINES_LIMIT} lines.`
-      ),
-    offset: z
-      .number()
-      .optional()
-      .describe(
-        'The line number to start reading from. Only provide if the file has more than ${DEFAULT_FILE_READ_LINES_LIMIT} lines.'
-      ),
+    relativePath: z.string(),
+    limit: z.number().optional(),
+    offset: z.number().optional(),
   });
 
   return tool(
