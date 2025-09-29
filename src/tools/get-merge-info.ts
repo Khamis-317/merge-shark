@@ -1,19 +1,21 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import { getMergeBase, getMergeTarget, formatMergeInfo} from '../utils/git-utils.js';
-
+import {
+  getMergeBase,
+  getMergeTarget,
+  formatMergeInfo,
+} from '../utils/git-utils.js';
 
 export function makeGetMergeInfoTool(repoPath: string) {
   const mergeInfoSchema = z.object({});
   return tool(
-    async ({}) => {
+    async () => {
       try {
         const mergeTarget = await getMergeTarget(repoPath);
-        const mergeBase = await getMergeBase(repoPath, "HEAD", mergeTarget);
-        
-        return formatMergeInfo(mergeTarget, mergeBase);
+        const mergeBase = await getMergeBase(repoPath, 'HEAD', mergeTarget);
 
+        return formatMergeInfo(mergeTarget, mergeBase);
       } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving merge info: ${err.message}`;
@@ -52,4 +54,17 @@ export function makeGetMergeInfoTool(repoPath: string) {
 }
 
 
+const repoPath = "/home/khamis/Desktop/conflictedRepos/lodash"; 
 
+
+
+  const toolInstance = makeGetMergeInfoTool(repoPath);
+
+
+  toolInstance.invoke({ })
+    .then(result => {
+      console.log("Tool output:\n", result);
+    })
+    .catch(err => {
+      console.error("Error running tool:", err);
+    });

@@ -11,17 +11,22 @@ export function makeGetDiffTool(repoPath: string) {
   });
 
   return tool(
-    async ({ 
-        from, 
-        to, 
-        relativePath 
+    async ({
+      from,
+      to,
+      relativePath,
     }: {
-        from: string;
-        to: string;
-        relativePath: string;
+      from: string;
+      to: string;
+      relativePath: string;
     }) => {
       try {
-        const diffOutput = await getDiffForFile(repoPath, from, to, relativePath);
+        const diffOutput = await getDiffForFile(
+          repoPath,
+          from,
+          to,
+          relativePath
+        );
         return diffOutput;
       } catch (err: unknown) {
         if (err instanceof Error) {
@@ -53,9 +58,3 @@ export function makeGetDiffTool(repoPath: string) {
     }
   );
 }
-
-
-
-
-
-

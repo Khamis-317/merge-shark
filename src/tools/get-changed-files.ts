@@ -5,18 +5,16 @@ import { getChangedFilesInCommit } from '../utils/git-utils.js';
 
 export function makeGetChangedFilesTool(repoPath: string) {
   const changedFilesSchema = z.object({
-    commitHash: z
-      .string(),
+    commitHash: z.string(),
   });
 
   return tool(
-    async ({ 
-        commitHash 
-    }: {
-        commitHash: string;
-    }) => {
+    async ({ commitHash }: { commitHash: string }) => {
       try {
-        const changedFiles = await getChangedFilesInCommit(repoPath, commitHash);
+        const changedFiles = await getChangedFilesInCommit(
+          repoPath,
+          commitHash
+        );
         return changedFiles;
       } catch (err: unknown) {
         if (err instanceof Error) {

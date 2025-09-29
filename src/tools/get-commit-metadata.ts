@@ -1,25 +1,19 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import {getCommitMetaData} from '../utils/git-utils.js';
+import { getCommitMetaData } from '../utils/git-utils.js';
 
+export function makeGetCommitMetadata(repoPath: string) {
+  const commitMetadataSchema = z.object({
+    commitHash: z.string(),
+  });
 
-export function makeGetCommitMetadata(repoPath: string){
-    const commitMetadataSchema = z.object({
-        commitHash: z
-          .string(),
-      });
-
-   return tool (
-    async ({
-        commitHash
-    }: {
-        commitHash: string;
-    }) => {
-        try {
-            const data = await getCommitMetaData(repoPath, commitHash);
-            return data;
-        }catch (err: unknown) {
+  return tool(
+    async ({ commitHash }: { commitHash: string }) => {
+      try {
+        const data = await getCommitMetaData(repoPath, commitHash);
+        return data;
+      } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving metadata for commit: ${commitHash}, error: ${err.message}`;
         }
@@ -27,8 +21,8 @@ export function makeGetCommitMetadata(repoPath: string){
       }
     },
     {
-        name: 'get_commit_metadata',
-        description: dedent`
+      name: 'get_commit_metadata',
+      description: dedent`
           Retrieves metadata for a specific commit (author, date, commit message text).
             Input:
              commitHash: the commit hash (from HEAD, MERGE_HEAD, merge-base, or any commit hash you get from provided tools).
@@ -43,11 +37,7 @@ export function makeGetCommitMetadata(repoPath: string){
             - To understand the purpose and intent of changes
             - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
         `,
-        schema: commitMetadataSchema,
+      schema: commitMetadataSchema,
     }
-   )
+  );
 }
-
-
-
-

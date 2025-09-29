@@ -2,36 +2,41 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import { getBlame } from '../utils/git-utils.js';
-export function makeGetBlameTool(repoPath: string){
-    const blameSchema = z.object({
-        relativePath: z.string(),
-        startLine: z.number(),
-        endLine: z.number(),
-    });
+export function makeGetBlameTool(repoPath: string) {
+  const blameSchema = z.object({
+    relativePath: z.string(),
+    startLine: z.number(),
+    endLine: z.number(),
+  });
 
-    return tool(
-        async ({
-            relativePath,
-            startLine,
-            endLine
-        }: {
-            relativePath: string;
-            startLine: number;
-            endLine: number;
-        }) => {
-           try {
-            const blameOutput = await getBlame(repoPath, relativePath, startLine, endLine);
-            return blameOutput;
-            } catch (err: unknown) {
-                if (err instanceof Error) {
-                    return `Error retrieving last merge commits: ${err.message}`;
-                }
-                return `An unknown error occurred: ${err}`;
-            }
-        },
-        {
-            name: 'get_blame',
-            description: dedent`
+  return tool(
+    async ({
+      relativePath,
+      startLine,
+      endLine,
+    }: {
+      relativePath: string;
+      startLine: number;
+      endLine: number;
+    }) => {
+      try {
+        const blameOutput = await getBlame(
+          repoPath,
+          relativePath,
+          startLine,
+          endLine
+        );
+        return blameOutput;
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return `Error retrieving last merge commits: ${err.message}`;
+        }
+        return `An unknown error occurred: ${err}`;
+      }
+    },
+    {
+      name: 'get_blame',
+      description: dedent`
                 Retrieves git blame information for a specific line range in a file
 
                 Input:
@@ -50,7 +55,7 @@ export function makeGetBlameTool(repoPath: string){
                 - To understand the history of changes for a particular code section
                 - To track down the author of specific code changes
             `,
-            schema: blameSchema,
-        }
-    );
+      schema: blameSchema,
+    }
+  );
 }

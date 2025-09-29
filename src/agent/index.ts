@@ -16,7 +16,6 @@ import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js'
 import { makeEditTool } from '../tools/edit.js';
 import type { FileEdit } from '../utils/edit-file.js';
 
-
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
   const conflictingFilesContent = await Promise.all(
@@ -35,15 +34,15 @@ export async function resolveConflicts(repoPath: string) {
   });
 
   const tools: DynamicStructuredTool[] = [
-     makeReadTool(repoPath),
-     makeEditTool(repoPath, edits),
-     makeGetBlameTool(repoPath),
-     makeGetChangedFilesTool(repoPath),
-     makeGetCommitMetadata(repoPath),
-     makeGetDiffTool(repoPath),
-     makeGetLastMergeCommitsTool(repoPath),
-     makeGetMergeInfoTool(repoPath),
-     makeGetRecentCommitsTool(repoPath)
+    makeReadTool(repoPath),
+    makeEditTool(repoPath, edits),
+    makeGetBlameTool(repoPath),
+    makeGetChangedFilesTool(repoPath),
+    makeGetCommitMetadata(repoPath),
+    makeGetDiffTool(repoPath),
+    makeGetLastMergeCommitsTool(repoPath),
+    makeGetMergeInfoTool(repoPath),
+    makeGetRecentCommitsTool(repoPath),
   ];
 
   const agent = createReactAgent({

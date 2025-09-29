@@ -1,37 +1,37 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import { getLastCommitsForFile, DEFAULT_MAX_COMMITS_PER_FILE } from '../utils/git-utils.js';
+import {
+  getLastCommitsForFile,
+  DEFAULT_MAX_COMMITS_PER_FILE,
+} from '../utils/git-utils.js';
 
+export function makeGetRecentCommitsTool(repoPath: string) {
+  const recentCommitsSchema = z.object({
+    relativePath: z.string(),
+    branchRef: z.string().default('HEAD').optional(),
+    n: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
+  });
 
-export function makeGetRecentCommitsTool(repoPath: string){
-    const recentCommitsSchema = z.object({
-        relativePath: z
-          .string(),
-        branchRef: z
-          .string()
-          .default('HEAD')
-          .optional(),
-        n: z
-          .number()
-          .default(DEFAULT_MAX_COMMITS_PER_FILE)
-          .optional(),
-      });
-
-   return tool (
-     async ({ 
-        relativePath, 
-        branchRef = 'HEAD', 
-        n = DEFAULT_MAX_COMMITS_PER_FILE 
-     }: {
-        relativePath: string;
-        branchRef: string;
-        n: number;
-     }) => { 
-        try {
-            const data = await getLastCommitsForFile(repoPath, relativePath, branchRef, n);
-            return data;
-        }catch (err: unknown) {
+  return tool(
+    async ({
+      relativePath,
+      branchRef = 'HEAD',
+      n = DEFAULT_MAX_COMMITS_PER_FILE,
+    }: {
+      relativePath: string;
+      branchRef: string;
+      n: number;
+    }) => {
+      try {
+        const data = await getLastCommitsForFile(
+          repoPath,
+          relativePath,
+          branchRef,
+          n
+        );
+        return data;
+      } catch (err: unknown) {
         if (err instanceof Error) {
           return `Error retrieving commits for file: ${relativePath}, error: ${err.message}`;
         }
@@ -39,8 +39,8 @@ export function makeGetRecentCommitsTool(repoPath: string){
       }
     },
     {
-        name: 'get_recent_commits_for_file',
-        description: dedent`
+      name: 'get_recent_commits_for_file',
+      description: dedent`
           Retrieves the last N commits that modified a specific file in a branch.
             Input:
             - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
@@ -55,8 +55,7 @@ export function makeGetRecentCommitsTool(repoPath: string){
             - Branch references can be obtained from "get_merge_info" tool
             - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
         `,
-        schema: recentCommitsSchema,
+      schema: recentCommitsSchema,
     }
-   )
+  );
 }
-
