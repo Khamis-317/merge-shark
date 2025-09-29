@@ -53,18 +53,3 @@ export function makeGetMergeInfoTool(repoPath: string) {
   );
 }
 
-
-const repoPath = "/home/khamis/Desktop/conflictedRepos/lodash"; 
-
-
-
-  const toolInstance = makeGetMergeInfoTool(repoPath);
-
-
-  toolInstance.invoke({ })
-    .then(result => {
-      console.log("Tool output:\n", result);
-    })
-    .catch(err => {
-      console.error("Error running tool:", err);
-    });
