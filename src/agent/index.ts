@@ -13,6 +13,7 @@ import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
 import { makeGetDiffTool } from '../tools/get-diff.js';
 import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGetBlameTool } from '../tools/get-blame-tool.js';
+import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 
 
 export async function resolveConflicts(repoPath: string) {
@@ -32,13 +33,14 @@ export async function resolveConflicts(repoPath: string) {
   });
 
   const tools: DynamicStructuredTool[] = [makeReadTool(repoPath),
-     makeGetRecentCommitsTool(repoPath), 
-     makeGetCommitMetadata(repoPath),
-     makeGetMergeInfoTool(repoPath),
-     makeGetDiffTool(repoPath),
-     makeGetChangedFilesTool(repoPath),
      makeGetBlameTool(repoPath),
-     makeGetChangedFilesTool(repoPath)];
+      makeGetChangedFilesTool(repoPath),
+      makeGetCommitMetadata(repoPath),
+      makeGetDiffTool(repoPath),
+      makeGetLastMergeCommitsTool(repoPath),
+      makeGetMergeInfoTool(repoPath),
+      makeGetRecentCommitsTool(repoPath)
+     ];
 
   const agent = createReactAgent({
     llm,
