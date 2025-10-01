@@ -26,19 +26,19 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
     {
       name: 'get_last_merge_commits',
       description: dedent`
-                Retrieves the last N merge commits reachable from HEAD.
+                Retrieves detailed information about the last N merge commits reachable from HEAD.
 
                 Input:
                 - n: maximum number of merge commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 
                 Output:
-                - Raw git output with commit hashes, one per line.
-                - Returns empty string if no merge commits are found.
+                - Detailed merge commit information in format: hash|author|date|message (one commit per line)
+                - Each line contains: commit_hash|author_name|commit_date|commit_message
+                - Returns empty string if no merge commits are found
 
                 When to use:
-                - To find recent merge commits that integrated branches
-                - Provides insight into how past merges were handled.
-                - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
+                - To find recent merge commits that integrated branches with full context
+                - Use the returned commit hashes with "git_diff" or "git_blame" for detailed analysis about how the past merges were done
             `,
       schema: lastMergeCommitsSchema,
     }

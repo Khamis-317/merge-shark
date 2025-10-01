@@ -38,8 +38,7 @@ export function makeGetChangedFilesTool(repoPath: string) {
         When to use:
         - To see what files were affected by a specific commit
         - To understand the scope of changes in a commit
-        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
-        - Use the returned file paths with "get_diff", "get_recent_commits_for_file", and "get_blame" for detailed analysis of specific files
+        - Use the returned file paths with "git_diff", "git_log", and "git_blame" for detailed analysis of specific files
       `,
       schema: changedFilesSchema,
     }

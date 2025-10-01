@@ -1,8 +1,9 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-import { getBlame } from '../utils/git-utils.js';
-export function makeGetBlameTool(repoPath: string) {
+import { gitBlame } from '../utils/git-utils.js';
+
+export function makeGitBlameTool(repoPath: string) {
   const blameSchema = z.object({
     relativePath: z.string(),
     startLine: z.number(),
@@ -20,7 +21,7 @@ export function makeGetBlameTool(repoPath: string) {
       endLine: number;
     }) => {
       try {
-        const blameOutput = await getBlame(
+        const blameOutput = await gitBlame(
           repoPath,
           relativePath,
           startLine,
@@ -35,7 +36,7 @@ export function makeGetBlameTool(repoPath: string) {
       }
     },
     {
-      name: 'get_blame',
+      name: 'git_blame',
       description: dedent`
                 Retrieves git blame information for a specific line range in a file
 
