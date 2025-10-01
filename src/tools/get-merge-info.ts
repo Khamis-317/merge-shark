@@ -1,5 +1,4 @@
 import { tool } from '@langchain/core/tools';
-import { z } from 'zod';
 import dedent from 'dedent';
 import {
   getMergeBase,
@@ -8,7 +7,6 @@ import {
 } from '../utils/git-utils.js';
 
 export function makeGetMergeInfoTool(repoPath: string) {
-  const mergeInfoSchema = z.object({});
   return tool(
     async () => {
       try {
@@ -27,9 +25,6 @@ export function makeGetMergeInfoTool(repoPath: string) {
       name: 'get_merge_info',
       description: dedent`
         Gets both the merge target (MERGE_HEAD) and merge base commit hashes.
-    
-        Input:
-        - No input required
 
         Output:
         Returns merge information in XML format exactly as shown:
@@ -47,8 +42,7 @@ export function makeGetMergeInfoTool(repoPath: string) {
         - The merge target shows what changes are being brought in
         - The merge base shows the common starting point for both branches
         - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
-      `,
-      schema: mergeInfoSchema,
+      `
     }
   );
 }

@@ -5,7 +5,7 @@ import { getConflictingFiles } from '../context/conflicting-files.js';
 import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
 import { makeGetCommitMetadata } from '../tools/get-commit-metadata.js';
 import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
@@ -33,7 +33,7 @@ export async function resolveConflicts(repoPath: string) {
     temperature: 0.2,
   });
 
-  const tools: DynamicStructuredTool[] = [
+  const tools: StructuredToolInterface[] = [
     makeReadTool(repoPath),
     makeEditTool(repoPath, edits),
     makeGetBlameTool(repoPath),
