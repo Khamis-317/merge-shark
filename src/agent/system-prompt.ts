@@ -49,6 +49,8 @@ export function createSystemPrompt(options: SystemPromptOptions) {
 
     <resolution_format>
     Once you figure out the resolution for each conflict apply those resolutions using edit tool.
+    Before editing, you are required to call the read tool on the same file you intend to modify.
+    This ensures you are editing against the most up-to-date file contents and that formatting (indentation, spacing, etc.) is preserved exactly.
     </resolution_format>
 
     <code_guidelines>
