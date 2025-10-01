@@ -42,7 +42,7 @@ export function makeGetMergeInfoTool(repoPath: string) {
         - The merge target shows what changes are being brought in
         - The merge base shows the common starting point for both branches
         - Use the returned hashes with "get_commit_metadata", "get_changed_files_in_commit", "get_diff", or "get_recent_commits_for_file" for detailed analysis
-      `
+      `,
     }
   );
 }
