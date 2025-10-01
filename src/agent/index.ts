@@ -5,7 +5,14 @@ import { getConflictingFiles } from '../context/conflicting-files.js';
 import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
+import type { StructuredToolInterface } from '@langchain/core/tools';
+import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
+import { makeGetCommitMetadata } from '../tools/get-commit-metadata.js';
+import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
+import { makeGetDiffTool } from '../tools/get-diff.js';
+import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
+import { makeGetBlameTool } from '../tools/get-blame-tool.js';
+import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
 import type { FileEdit } from '../utils/edit-file.js';
 
@@ -26,9 +33,16 @@ export async function resolveConflicts(repoPath: string) {
     temperature: 0.2,
   });
 
-  const tools: DynamicStructuredTool[] = [
+  const tools: StructuredToolInterface[] = [
     makeReadTool(repoPath),
     makeEditTool(repoPath, edits),
+    makeGetBlameTool(repoPath),
+    makeGetChangedFilesTool(repoPath),
+    makeGetCommitMetadata(repoPath),
+    makeGetDiffTool(repoPath),
+    makeGetLastMergeCommitsTool(repoPath),
+    makeGetMergeInfoTool(repoPath),
+    makeGetRecentCommitsTool(repoPath),
   ];
 
   const agent = createReactAgent({
