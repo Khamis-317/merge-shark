@@ -15,6 +15,7 @@ import { makeGetBlameTool } from '../tools/get-blame-tool.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
 import type { FileEdit } from '../utils/edit-file.js';
+import { createToolContext } from '../utils/tool-context.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -27,6 +28,7 @@ export async function resolveConflicts(repoPath: string) {
     })
   );
   const edits: FileEdit[] = [];
+  const context = createToolContext();
 
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
@@ -34,8 +36,8 @@ export async function resolveConflicts(repoPath: string) {
   });
 
   const tools: StructuredToolInterface[] = [
-    makeReadTool(repoPath),
-    makeEditTool(repoPath, edits),
+    makeReadTool(repoPath, context),
+    makeEditTool(repoPath, edits, context),
     makeGetBlameTool(repoPath),
     makeGetChangedFilesTool(repoPath),
     makeGetCommitMetadata(repoPath),

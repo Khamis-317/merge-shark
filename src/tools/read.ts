@@ -3,8 +3,9 @@ import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
 import dedent from 'dedent';
 import path from 'path';
+import type { ToolContext } from '../utils/tool-context.js';
 
-export function makeReadTool(repoPath: string) {
+export function makeReadTool(repoPath: string, context: ToolContext) {
   const readSchema = z.object({
     relativePath: z.string(),
     limit: z.number().optional(),
@@ -25,6 +26,8 @@ export function makeReadTool(repoPath: string) {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
         const data = await readFile(absolutePath, { limit, offset });
+
+        context.lastFileRead = absolutePath;
 
         return data;
       } catch (err: unknown) {
