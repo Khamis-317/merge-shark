@@ -2,34 +2,33 @@ import fs from 'node:fs/promises';
 
 export const DEFAULT_FILE_READ_LINES_LIMIT = 2000;
 
-export interface FileEdit {
-  path: string;
+export interface Edit {
   oldText: string;
   newText: string;
-  replaceAll: boolean;
+  replaceAll?: boolean;
+}
+
+export interface FileEdit extends Edit {
+  path: string;
 }
 
 /**
  * Edits a file.
  *
- * @param path The path of the file to edit.
- * @param oldText The text that needs to be edited.
- * @param newText The text the will be used for the edit.
- * @param replaceAll Option to replace all instances of `oldText` with `newText`.
+ * @param edit the edit to be applied, includes:
+ * - path The path of the file to edit.
+ * - oldText The text that needs to be edited.
+ * - newText The text the will be used for the edit.
+ * - replaceAll Option to replace all instances of `oldText` with `newText`.
  */
-export async function editFile(
-  path: string,
-  oldText: string,
-  newText: string,
-  replaceAll: boolean = false
-) {
-  const data = await fs.readFile(path, 'utf-8');
+export async function editFile(edit: FileEdit) {
+  const data = await fs.readFile(edit.path, 'utf-8');
 
-  const editedData = replaceAll
-    ? data.replaceAll(oldText, newText)
-    : data.replace(oldText, newText);
+  const editedData = edit.replaceAll
+    ? data.replaceAll(edit.oldText, edit.newText)
+    : data.replace(edit.oldText, edit.newText);
 
-  await fs.writeFile(path, editedData, 'utf-8');
+  await fs.writeFile(edit.path, editedData, 'utf-8');
 }
 
 /**

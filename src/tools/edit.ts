@@ -2,46 +2,40 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import path from 'path';
-import { checkEditValidity, type FileEdit } from '../utils/edit-file.js';
+import {
+  checkEditValidity,
+  type Edit,
+  type FileEdit,
+} from '../utils/edit-file.js';
 
 export function makeEditTool(repoPath: string, edits: FileEdit[]) {
   const editSchema = z.object({
     relativePath: z.string(),
-    oldText: z.string(),
-    newText: z.string(),
-    replaceAll: z.boolean().optional(),
+    edit: z.object({
+      oldText: z.string(),
+      newText: z.string(),
+      replaceAll: z.boolean().optional(),
+    }),
   });
 
   return tool(
-    async ({
-      relativePath,
-      oldText,
-      newText,
-      replaceAll = false,
-    }: {
-      relativePath: string;
-      oldText: string;
-      newText: string;
-      replaceAll: boolean;
-    }) => {
+    async ({ relativePath, edit }: { relativePath: string; edit: Edit }) => {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
         const editError = await checkEditValidity(
           absolutePath,
-          oldText,
-          replaceAll
+          edit.oldText,
+          edit.replaceAll ?? false
         );
         if (editError) return editError;
 
-        const edit: FileEdit = {
+        const fileEdit: FileEdit = {
           path: absolutePath,
-          oldText,
-          newText,
-          replaceAll,
+          ...edit,
         };
 
-        edits.push(edit);
+        edits.push(fileEdit);
 
         return null;
       } catch (err: unknown) {
