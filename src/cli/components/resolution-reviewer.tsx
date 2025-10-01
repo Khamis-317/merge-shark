@@ -1,14 +1,14 @@
 import { Box, Text, useInput } from 'ink';
 import path from 'node:path';
 import { CodeDiff } from './code-diff.js';
-import type { Resolutions } from '../../model/resolution.js';
+import type { FileEditOptions } from '../../utils/edit-file.js';
 
 export interface ResolutionReviewerProps {
-  resolutions: Resolutions;
-  activeFileIndex: number;
-  activeConflictIndex: number;
-  onApply: (fileIndex: number, conflictIndex: number) => void;
-  onReject: (fileIndex: number, conflictIndex: number) => void;
+  repoPath: string;
+  edits: FileEditOptions[];
+  activeEditIndex: number;
+  onApply: (edit: FileEditOptions) => void;
+  onReject: (edit: FileEditOptions) => void;
   onNext: () => void;
   onPrevious: () => void;
   onApplyAll: () => void;
@@ -17,9 +17,9 @@ export interface ResolutionReviewerProps {
 }
 
 export function ResolutionReviewer({
-  resolutions,
-  activeFileIndex,
-  activeConflictIndex,
+  repoPath,
+  edits,
+  activeEditIndex,
   onApply,
   onReject,
   onNext,
@@ -28,6 +28,8 @@ export function ResolutionReviewer({
   onRejectAll,
   onExit,
 }: ResolutionReviewerProps) {
+  const edit = edits[activeEditIndex]!;
+
   useInput((input, key) => {
     if (key.return && key.ctrl) {
       onApplyAll();
@@ -36,10 +38,10 @@ export function ResolutionReviewer({
     } else if (key.escape || input === 'q') {
       onExit();
     } else if (key.return) {
-      onApply(activeFileIndex, activeConflictIndex);
+      onApply(edit);
       onNext();
     } else if (input === 'r') {
-      onReject(activeFileIndex, activeConflictIndex);
+      onReject(edit);
       onNext();
     } else if (key.leftArrow) {
       onPrevious();
@@ -48,27 +50,11 @@ export function ResolutionReviewer({
     }
   });
 
-  const file = resolutions.files[activeFileIndex];
-  if (!file) {
-    return <Text>No conflicts to resolve!</Text>;
-  }
+  const language = path.extname(edit.path).slice(1);
 
-  const conflict = file.conflicts[activeConflictIndex];
-  if (!conflict) {
-    return <Text>No conflict at this index!</Text>;
-  }
-
-  const language = path.extname(file.name).slice(1);
-
-  const totalConflicts = resolutions.files.reduce(
-    (sum, file) => sum + file.conflicts.length,
-    0
-  );
-  let currentConflictNumber = 1;
-  for (let i = 0; i < activeFileIndex; i++) {
-    currentConflictNumber += resolutions.files[i]?.conflicts.length ?? 0;
-  }
-  currentConflictNumber += activeConflictIndex;
+  const totalEdits = edits.length;
+  let currentEditNumber = 1;
+  currentEditNumber += activeEditIndex;
 
   return (
     <Box flexDirection="column">
@@ -81,12 +67,12 @@ export function ResolutionReviewer({
       >
         <Box marginBottom={1}>
           <Text>
-            📄 {file.name} - conflict {currentConflictNumber} of{' '}
-            {totalConflicts}
+            📄 {path.relative(repoPath, edit.path)} - edit {currentEditNumber}{' '}
+            of {totalEdits}
           </Text>
         </Box>
 
-        <CodeDiff conflict={conflict} language={language} />
+        <CodeDiff edit={edit} language={language} />
       </Box>
 
       <Box marginTop={1} paddingX={1}>

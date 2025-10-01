@@ -1,20 +1,20 @@
 import { Box } from 'ink';
 import { CodeBlock } from './code-block.js';
-import type { Conflict } from '../../model/resolution.js';
+import type { FileEditOptions } from '../../utils/edit-file.js';
 
 export interface CodeDiffProps {
-  conflict: Conflict;
+  edit: FileEditOptions;
   language: string;
 }
 
-export function CodeDiff({ conflict, language }: CodeDiffProps) {
+export function CodeDiff({ edit, language }: CodeDiffProps) {
   return (
     <>
       <Box backgroundColor="#280a0a">
-        <CodeBlock code={conflict.conflict} language={language} />
+        <CodeBlock code={edit.oldText} language={language} />
       </Box>
       <Box backgroundColor="#0a280a">
-        <CodeBlock code={conflict.resolution} language={language} />
+        <CodeBlock code={edit.newText} language={language} />
       </Box>
     </>
   );

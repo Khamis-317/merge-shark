@@ -12,7 +12,7 @@ import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGitBlameTool } from '../tools/git-blame.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
-import type { FileEdit } from '../utils/edit-file.js';
+import type { FileEditOptions } from '../utils/edit-file.js';
 import {
   gitMergeTarget,
   gitMergeBase,
@@ -30,7 +30,7 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
-  const edits: FileEdit[] = [];
+  const edits: FileEditOptions[] = [];
 
   // Try to get merge information (may fail in case of rebase)
   let mergeInfo: string | null = null;

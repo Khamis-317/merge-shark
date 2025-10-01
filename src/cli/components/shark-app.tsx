@@ -1,71 +1,52 @@
 import { useState } from 'react';
-import type { Resolutions } from '../../model/resolution.js';
 import { ResolutionReviewer } from './resolution-reviewer.js';
 import { beep } from '../utils/beep.js';
+import { editFile, type FileEditOptions } from '../../utils/edit-file.js';
 
 export interface SharkAppProps {
-  resolutions: Resolutions;
+  edits: FileEditOptions[];
+  repoPath: string;
 }
 
-export function SharkApp({ resolutions }: SharkAppProps) {
-  const [activeFileIndex, setActiveFileIndex] = useState(0);
-  const [activeConflictIndex, setActiveConflictIndex] = useState(0);
+export function SharkApp({ edits, repoPath }: SharkAppProps) {
+  const [activeEditIndex, setActiveEditIndex] = useState(0);
 
   const handleNext = () => {
-    const currentFile = resolutions.files[activeFileIndex];
-    if (!currentFile) {
-      return beep();
-    }
+    const currentEdit = edits[activeEditIndex];
+    if (!currentEdit) return beep();
 
-    if (activeConflictIndex + 1 < currentFile.conflicts.length) {
-      return setActiveConflictIndex((current) => current + 1);
-    }
+    if (activeEditIndex + 1 >= edits.length) return beep();
 
-    if (activeFileIndex + 1 >= resolutions.files.length) {
-      return beep();
-    }
-
-    setActiveFileIndex((current) => current + 1);
-    setActiveConflictIndex(0);
+    setActiveEditIndex((current) => current + 1);
   };
 
   const handlePrevious = () => {
-    if (activeConflictIndex !== 0) {
-      return setActiveConflictIndex((current) => current - 1);
-    }
-
-    if (activeFileIndex === 0) {
+    if (activeEditIndex === 0) {
       return beep();
     }
 
-    // Move to previous file
-    const previousFileIndex = activeFileIndex - 1;
-    const previousFile = resolutions.files[previousFileIndex];
-    if (!previousFile) {
-      return beep();
-    }
-    setActiveFileIndex(previousFileIndex);
-    setActiveConflictIndex(previousFile.conflicts.length - 1);
+    return setActiveEditIndex((current) => current - 1);
   };
 
-  const handleApply = (fileIndex: number, conflictIndex: number) => {
-    // TODO: Implement actual conflict resolution logic
-    console.log(`Applied conflict ${conflictIndex} in file ${fileIndex}`);
+  const handleApply = (edit: FileEditOptions) => {
+    editFile(edit.path, edit.oldText, edit.newText, edit.replaceAll);
+    handleNext();
   };
 
-  const handleReject = (fileIndex: number, conflictIndex: number) => {
-    // TODO: Implement actual conflict rejection logic
-    console.log(`Rejected conflict ${conflictIndex} in file ${fileIndex}`);
+  const handleReject = () => {
+    // FIXME: Handle rejection
+    beep();
+    handleNext();
   };
 
   const handleApplyAll = () => {
-    // TODO: Implement apply all logic
-    console.log('Applied all conflicts');
+    edits.forEach((edit) => {
+      editFile(edit.path, edit.oldText, edit.newText, edit.replaceAll);
+    });
   };
 
   const handleRejectAll = () => {
-    // TODO: Implement reject all logic
-    console.log('Rejected all conflicts');
+    beep();
   };
 
   const handleExit = () => {
@@ -74,9 +55,9 @@ export function SharkApp({ resolutions }: SharkAppProps) {
 
   return (
     <ResolutionReviewer
-      resolutions={resolutions}
-      activeFileIndex={activeFileIndex}
-      activeConflictIndex={activeConflictIndex}
+      repoPath={repoPath}
+      edits={edits}
+      activeEditIndex={activeEditIndex}
       onApply={handleApply}
       onReject={handleReject}
       onNext={handleNext}

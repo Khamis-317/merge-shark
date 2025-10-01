@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 
 export const DEFAULT_FILE_READ_LINES_LIMIT = 2000;
 
-export interface FileEdit {
+export interface FileEditOptions {
   path: string;
   oldText: string;
   newText: string;

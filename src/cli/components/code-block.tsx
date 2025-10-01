@@ -45,43 +45,14 @@ const theme: Theme = {
 export interface CodeBlockProps {
   code: string;
   language: string;
-  startLine?: number;
-  showLineNumbers?: boolean;
 }
 
-export function CodeBlock({
-  code,
-  language,
-  startLine = 1,
-  showLineNumbers = true,
-}: CodeBlockProps) {
+export function CodeBlock({ code, language }: CodeBlockProps) {
   const codeWithLineNumbers = useMemo(() => {
     const highlightedCode = highlight(code, { language, theme });
 
-    if (showLineNumbers) {
-      return addLineNumbers(highlightedCode, startLine);
-    }
-
     return highlightedCode;
-  }, [code, language, startLine, showLineNumbers]);
+  }, [code, language]);
 
   return <Text>{codeWithLineNumbers}</Text>;
-}
-
-function addLineNumbers(code: string, startLine: number) {
-  const lines = code.split('\n');
-
-  const maxLine = startLine + lines.length;
-  const lineNumberPadding = maxLine.toString().length + 2;
-
-  return lines
-    .map((line, index) => {
-      const lineNumber = startLine + index;
-      const paddedLineNumber = lineNumber
-        .toString()
-        .padStart(lineNumberPadding, ' ');
-
-      return `${chalk.gray(paddedLineNumber)}    ${line}`;
-    })
-    .join('\n');
 }
