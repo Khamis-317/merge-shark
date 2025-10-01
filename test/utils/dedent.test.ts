@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 describe('dedent', () => {
   it('dedents a simple multiline string', () => {
     const result = dedent`
-    hello
-    world
-    `;
+      hello
+      world
+      `;
 
     expect(result).toBe('hello\nworld');
   });
@@ -26,6 +26,16 @@ describe('dedent', () => {
         world
         `;
     }).throws('First line must be empty');
+  });
+
+  it('allows empty lines', () => {
+    const result = dedent`
+      hello
+
+      world
+      `;
+
+    expect(result).toBe('hello\n\nworld');
   });
 
   it('requires the last line to contain spaces only', () => {
@@ -50,7 +60,7 @@ describe('dedent', () => {
         hello
         world
           `;
-    }).throws('Line must start with indentation');
+    }).throws('Line "        hello" must start with indentation');
   });
 
   it('dedents a placeholder in the middle of a line', () => {

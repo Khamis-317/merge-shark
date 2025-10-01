@@ -112,8 +112,8 @@ export function dedent(
     .slice(1, -1)
     .map((line) => {
       invariant(
-        line.startsWith(baseIndentation),
-        'Line must start with indentation'
+        line.length === 0 || line.startsWith(baseIndentation),
+        `Line "${line}" must start with indentation`
       );
 
       return line.slice(baseIndentation.length);
