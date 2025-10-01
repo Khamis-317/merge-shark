@@ -30,13 +30,11 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
 
   const handleApply = (edit: FileEditOptions) => {
     editFile(edit.path, edit.oldText, edit.newText, edit.replaceAll);
-    handleNext();
   };
 
   const handleReject = () => {
     // FIXME: Handle rejection
     beep();
-    handleNext();
   };
 
   const handleApplyAll = () => {

@@ -28,7 +28,7 @@ export function ResolutionReviewer({
   onRejectAll,
   onExit,
 }: ResolutionReviewerProps) {
-  const edit = edits[activeEditIndex]!;
+  const edit = edits[activeEditIndex];
 
   useInput((input, key) => {
     if (key.return && key.ctrl) {
@@ -37,10 +37,10 @@ export function ResolutionReviewer({
       onRejectAll();
     } else if (key.escape || input === 'q') {
       onExit();
-    } else if (key.return) {
+    } else if (key.return && edit) {
       onApply(edit);
       onNext();
-    } else if (input === 'r') {
+    } else if (input === 'r' && edit) {
       onReject(edit);
       onNext();
     } else if (key.leftArrow) {
@@ -49,6 +49,10 @@ export function ResolutionReviewer({
       onNext();
     }
   });
+
+  if (!edit) {
+    return <Text>No edit to review!</Text>;
+  }
 
   const language = path.extname(edit.path).slice(1);
 

@@ -77,12 +77,6 @@ export async function resolveConflicts(repoPath: string) {
     ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
     `;
 
-  console.log('SYSTEM PROMPT:\n');
-  console.log(systemPrompt);
-
-  console.log('\n\nUSER PROMPT:\n');
-  console.log(userPrompt);
-
   const messages = [
     {
       role: 'system',
@@ -94,10 +88,7 @@ export async function resolveConflicts(repoPath: string) {
     },
   ];
 
-  const result = await agent.invoke({ messages });
-
-  console.log('\n\nRESPONSE:\n');
-  console.log(result);
+  await agent.invoke({ messages });
 
   return edits;
 }
