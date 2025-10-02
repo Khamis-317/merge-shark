@@ -1,8 +1,8 @@
 import { tool } from '@langchain/core/tools';
 import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
-import dedent from 'dedent';
 import path from 'path';
+import { dedent } from '../utils/dedent.js';
 
 export function makeReadTool(repoPath: string) {
   const readSchema = z.object({
@@ -45,7 +45,7 @@ export function makeReadTool(repoPath: string) {
           You can optionally specify a line offset and limit (especially handy for long files)
           but it's recommended to read the whole file by not providing these parameters.
           You need to use other tools with this tool (if they are available):
-        `,
+          `,
       schema: readSchema,
     }
   );

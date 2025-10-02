@@ -12,12 +12,13 @@ import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGitBlameTool } from '../tools/git-blame.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
-import type { FileEdit } from '../utils/edit-file.js';
+import type { FileEditOptions } from '../utils/edit-file.js';
 import {
   gitMergeTarget,
   gitMergeBase,
   formatMergeInfo,
 } from '../utils/git-utils.js';
+import { dedent } from '../utils/dedent.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -29,7 +30,7 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
-  const edits: FileEdit[] = [];
+  const edits: FileEditOptions[] = [];
 
   // Try to get merge information (may fail in case of rebase)
   let mergeInfo: string | null = null;
@@ -71,16 +72,10 @@ export async function resolveConflicts(repoPath: string) {
     mergeInfo,
   });
 
-  const userPrompt = `
+  const userPrompt = dedent`
     Resolve the conflicts in the following files:
     ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
-  `;
-
-  console.log('SYSTEM PROMPT:\n');
-  console.log(systemPrompt);
-
-  console.log('\n\nUSER PROMPT:\n');
-  console.log(userPrompt);
+    `;
 
   const messages = [
     {
@@ -93,10 +88,7 @@ export async function resolveConflicts(repoPath: string) {
     },
   ];
 
-  const result = await agent.invoke({ messages });
-
-  console.log('\n\nRESPONSE:\n');
-  console.log(result);
+  await agent.invoke({ messages });
 
   return edits;
 }

@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import {
   getLastCommitsForFile,
   DEFAULT_MAX_COMMITS_PER_FILE,
