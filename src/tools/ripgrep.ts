@@ -56,7 +56,7 @@ export function makeRipgrepTool(repoPath: string) {
 
 /** 
 
-    * System prompt for claude code.
+    * System prompt for ripgrep based on claude code sys-prompt.
 
 Usage:
 - ALWAYS use Grep for search tasks. NEVER invoke `grep` or `rg` as a Bash command. The Grep tool has been optimized for correct permissions and access.\n  - Supports full regex syntax (e.g., "log.*Error", "function\\s+\\w+\")  
