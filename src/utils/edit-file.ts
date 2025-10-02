@@ -1,11 +1,9 @@
 import fs from 'node:fs/promises';
 
-export const DEFAULT_FILE_READ_LINES_LIMIT = 2000;
-
 export interface Edit {
   oldText: string;
   newText: string;
-  replaceAll?: boolean;
+  replaceAll: boolean;
 }
 
 export interface FileEdit extends Edit {
@@ -32,9 +30,20 @@ export async function editFile(edit: FileEdit) {
 }
 
 /**
+ * Reads the content of a file.
+ *
+ * @param path The path of the file to read.
+ * @returns The content of the file as a string.
+ */
+export async function getFileContent(path: string) {
+  return await fs.readFile(path, 'utf-8');
+}
+
+/**
  * Checks the validity of the edit.
  *
  * @param path The path of the file to edit.
+ * @param content The file content.
  * @param oldText The text that needs to be edited.
  * @param replaceAll Option to replace all instances of `oldText` with `newText`.
  *
@@ -43,12 +52,11 @@ export async function editFile(edit: FileEdit) {
  */
 export async function checkEditValidity(
   path: string,
+  content: string,
   oldText: string,
   replaceAll: boolean
 ) {
-  const data = await fs.readFile(path, 'utf-8');
-
-  const numOfOccurences = data.split(oldText).length - 1;
+  const numOfOccurences = content.split(oldText).length - 1;
 
   if (numOfOccurences === 0) {
     return `Edit failed: the specified oldText was not found in ${path}.`;

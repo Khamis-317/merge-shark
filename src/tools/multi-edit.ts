@@ -1,78 +1,82 @@
-import { DynamicStructuredTool, tool } from '@langchain/core/tools';
+import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-export function makeMultiEditTool(editTool: DynamicStructuredTool) {
+import {
+  checkEditValidity,
+  getFileContent,
+  type Edit,
+  type FileEdit,
+} from '../utils/edit-file.js';
+import path from 'path';
+export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
   const multiEditSchema = z.object({
     relativePath: z.string(),
-    edits: z
-      .array(
-        z.object({
-          oldText: z.string(),
-          newText: z.string(),
-          replaceAll: z.boolean(),
-        })
-      )
-      .describe('Array of edits to be applied in a sequential order'),
+    newEdits: z.array(
+      z.object({
+        oldText: z.string(),
+        newText: z.string(),
+        replaceAll: z.boolean().optional().default(false),
+      })
+    ),
   });
   return tool(
     async ({
       relativePath,
-      edits,
+      newEdits,
     }: {
       relativePath: string;
-      edits: Array<{
-        oldText: string;
-        newText: string;
-        replaceAll?: boolean;
-      }>;
+      newEdits: Edit[];
     }) => {
-      edits.forEach((edit) => {
-        editTool.invoke({
-          relativePath,
-          oldText: edit.oldText,
-          newText: edit.newText,
-          replaceAll: edit.replaceAll ?? false,
-        });
-      });
+      const absolutePath: string = path.resolve(repoPath, relativePath);
+      let fileContent = await getFileContent(absolutePath);
+      const validEdits: FileEdit[] = [];
+
+      for (const edit of newEdits) {
+        const editError = await checkEditValidity(
+          absolutePath,
+          fileContent,
+          edit.oldText,
+          edit.replaceAll
+        );
+        if (editError) return editError;
+
+        fileContent = edit.replaceAll
+          ? fileContent.replaceAll(edit.oldText, edit.newText)
+          : fileContent.replace(edit.oldText, edit.newText);
+
+        const fileEdit: FileEdit = {
+          path: absolutePath,
+          ...edit,
+        };
+        validEdits.push(fileEdit);
+      }
+
+      edits.push(...validEdits);
+      return null;
     },
     {
-      name: 'multiedit',
+      name: 'multi-edit',
       description: dedent`
-        This tool performs multiple edits to a file within the codebase in one operation.
-        It is built on top of 'edit' tool allowing multiple exact string replacements in a single atomic operation.
+        This is a tool for making multiple edits to a single file in one operation.
+        Prefer this tool over the Edit tool when you need to make multiple edits to the same file.
 
-        <usage>
-          This tool is ideal when you need to make several changes to different parts of the same file.
-          Prefer this tool over the 'edit' tool.
-          You MUST use the 'read' tool BEFORE calling this tool.
-          All edits are performed in sequence, in the order they are provided.
-          Each edit operates on the result of the previous edit.
-          All edits must be valid for the operation to succeed or none will be performed.
-          Since edits are applied in sequence, ensure that earlier edits don't affect the text that later edits are trying to find.
+        Before using this tool:
+        1. Use the read tool to understand the file's contents and context
+        2. Verify the directory path is correct
 
-          <input>
-            <relativePath>The path of the file to edit relative to repoPath(from the 'edit' tool).</relativePath>
-            <edits>
-              An array of edit operations to perform, where each edit contains:
-              - old_string: The text to replace (must match the file contents exactly, including all whitespace and indentation).
-              - new_string: The edited text to replace the old_string.
-              - replace_all: Replace all occurences of old_string within the current file. This parameter is optional and defaults to false.
-            </edits>
-          </input>
-        </usage>
+        To make multiple file edits, provide the following:
+        1. relativePath: The relative path to the file to modify (must be absolute, not relative)
+        2. edits: An array of edit operations to perform, where each edit contains:
+        - oldText: The text to replace
+        - newText: The edited text to replace the oldText
+        - replace_all: Replace all occurences of oldText. This parameter is optional and defaults to false.
 
-        <requirements>
-          <requirement>All edits follow the same requirements as the single 'edit' tool.</requirement>
-          <requirement>The edits are atomic - either all succeed or none are applied.</requirement>
-          <requirement>Plan your edits carefully to avoid conflicts between sequential operations.</requirement>
-          <requirement>Ensure edits result in valid, idiomatic code.</requirement>
-        </requirements>
-
-        <failure_modes>
-          <failure_mode>The tool will fail if edits.old_string doesn't match the file contents exactly (including whitespace).</failure_mode>
-          <failure_mode>The tool will fail if edits.old_string and edits.new_string are the same.</failure_mode>
-        </failure_modes>
-      `,
+        IMPORTANT:
+        - All edits are applied in sequence, in the order they are provided
+        - Each edit operates on the result of the previous edit
+        - If any edit fails, none will be applied
+        - This tool is ideal when you need to make several changes to different parts of the same file
+              `,
       schema: multiEditSchema,
     }
   );

@@ -4,6 +4,7 @@ import dedent from 'dedent';
 import path from 'path';
 import {
   checkEditValidity,
+  getFileContent,
   type Edit,
   type FileEdit,
 } from '../utils/edit-file.js';
@@ -14,7 +15,7 @@ export function makeEditTool(repoPath: string, edits: FileEdit[]) {
     edit: z.object({
       oldText: z.string(),
       newText: z.string(),
-      replaceAll: z.boolean().optional(),
+      replaceAll: z.boolean().optional().default(false),
     }),
   });
 
@@ -22,11 +23,12 @@ export function makeEditTool(repoPath: string, edits: FileEdit[]) {
     async ({ relativePath, edit }: { relativePath: string; edit: Edit }) => {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
-
+        const fileContent = await getFileContent(absolutePath);
         const editError = await checkEditValidity(
           absolutePath,
+          fileContent,
           edit.oldText,
-          edit.replaceAll ?? false
+          edit.replaceAll
         );
         if (editError) return editError;
 

@@ -27,11 +27,11 @@ export async function resolveConflicts(repoPath: string) {
     temperature: 0.2,
   });
 
-  const readTool = makeReadTool(repoPath);
-  const editTool = makeEditTool(repoPath, edits);
-  const multiEditTool = makeMultiEditTool(editTool);
-
-  const tools: DynamicStructuredTool[] = [readTool, editTool, multiEditTool];
+  const tools: DynamicStructuredTool[] = [
+    makeReadTool(repoPath),
+    makeEditTool(repoPath, edits),
+    makeMultiEditTool(repoPath, edits),
+  ];
 
   const agent = createReactAgent({
     llm,
@@ -72,6 +72,11 @@ export async function resolveConflicts(repoPath: string) {
 
   console.log('\n\nRESPONSE:\n');
   console.log(result);
+
+  edits.forEach((edit) => {
+    console.log('\n\nEDIT TO APPLY:\n');
+    console.log(edit);
+  });
 
   return edits;
 }
