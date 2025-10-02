@@ -8,42 +8,35 @@ import {
 
 export function makeGitLogTool(repoPath: string) {
   const recentCommitsSchema = z.object({
-    relativePath: z.string(),
+    relativeFilePath: z.string(),
     branchRef: z.string().default('HEAD').optional(),
     limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
   });
 
   return tool(
     async ({
-      relativePath,
+      relativeFilePath,
       branchRef = 'HEAD',
       limit = DEFAULT_MAX_COMMITS_PER_FILE,
     }: {
-      relativePath: string;
+      relativeFilePath: string;
       branchRef: string;
       limit: number;
     }) => {
-      try {
-        const data = await getLastCommitsForFile(
-          repoPath,
-          relativePath,
-          branchRef,
-          limit
-        );
-        return data;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error retrieving commits for file: ${relativePath}, error: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const data = await getLastCommitsForFile(
+        repoPath,
+        relativeFilePath,
+        branchRef,
+        limit
+      );
+      return data;
     },
     {
       name: 'git_log',
       description: dedent`
           Retrieves detailed commit history for a specific file, including commit hash, author, date, and message.
             Input:
-            - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
+            - relativeFilePath: relative path to the file in the repository (e.g., "src/index.ts")
             - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
             - limit: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 

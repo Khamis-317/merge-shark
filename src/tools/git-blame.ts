@@ -5,35 +5,28 @@ import { gitBlame } from '../utils/git-utils.js';
 
 export function makeGitBlameTool(repoPath: string) {
   const blameSchema = z.object({
-    relativePath: z.string(),
+    relativeFilePath: z.string(),
     startLine: z.number(),
     endLine: z.number(),
   });
 
   return tool(
     async ({
-      relativePath,
+      relativeFilePath,
       startLine,
       endLine,
     }: {
-      relativePath: string;
+      relativeFilePath: string;
       startLine: number;
       endLine: number;
     }) => {
-      try {
-        const blameOutput = await gitBlame(
-          repoPath,
-          relativePath,
-          startLine,
-          endLine
-        );
-        return blameOutput;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error retrieving last merge commits: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const blameOutput = await gitBlame(
+        repoPath,
+        relativeFilePath,
+        startLine,
+        endLine
+      );
+      return blameOutput;
     },
     {
       name: 'git_blame',
@@ -41,7 +34,7 @@ export function makeGitBlameTool(repoPath: string) {
                 Retrieves git blame information for a specific line range in a file
 
                 Input:
-                - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
+                - relativeFilePath: relative path to the file in the repository (e.g., "src/index.ts")
                 - startLine: starting line number (1-based)
                 - endLine: ending line number (1-based, inclusive)
 

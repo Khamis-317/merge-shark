@@ -7,28 +7,21 @@ export function makeGitDiffTool(repoPath: string) {
   const diffSchema = z.object({
     from: z.string(),
     to: z.string(),
-    relativePath: z.string(),
+    relativeFilePath: z.string(),
   });
 
   return tool(
     async ({
       from,
       to,
-      relativePath,
+      relativeFilePath,
     }: {
       from: string;
       to: string;
-      relativePath: string;
+      relativeFilePath: string;
     }) => {
-      try {
-        const diffOutput = await gitDiff(repoPath, from, to, relativePath);
-        return diffOutput;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error generating diff for ${relativePath} between ${from} and ${to}: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const diffOutput = await gitDiff(repoPath, from, to, relativeFilePath);
+      return diffOutput;
     },
     {
       name: 'git_diff',
@@ -38,7 +31,7 @@ export function makeGitDiffTool(repoPath: string) {
         Input:
         - from: the baseline commit hash or branch name.
         - to: the target commit hash or branch name.
-        - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
+        - relativeFilePath: relative path to the file in the repository (e.g., "src/index.ts")
 
         Output:
         - Standard git diff output showing the unified diff between the two commits for the specified file.

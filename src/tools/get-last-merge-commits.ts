@@ -13,15 +13,8 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
 
   return tool(
     async ({ limit = DEFAULT_MAX_COMMITS_PER_FILE }: { limit: number }) => {
-      try {
-        const mergeCommitsOutput = await getLastMergeCommits(repoPath, limit);
-        return mergeCommitsOutput;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error retrieving last merge commits: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const mergeCommitsOutput = await getLastMergeCommits(repoPath, limit);
+      return mergeCommitsOutput;
     },
     {
       name: 'get_last_merge_commits',

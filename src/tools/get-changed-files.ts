@@ -10,18 +10,8 @@ export function makeGetChangedFilesTool(repoPath: string) {
 
   return tool(
     async ({ commitHash }: { commitHash: string }) => {
-      try {
-        const changedFiles = await getChangedFilesInCommit(
-          repoPath,
-          commitHash
-        );
-        return changedFiles;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error retrieving changed files for commit ${commitHash}: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const changedFiles = await getChangedFilesInCommit(repoPath, commitHash);
+      return changedFiles;
     },
     {
       name: 'get_changed_files_in_commit',
