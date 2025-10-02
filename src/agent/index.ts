@@ -6,18 +6,19 @@ import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { StructuredToolInterface } from '@langchain/core/tools';
-import { makeGetRecentCommitsTool } from '../tools/get-recent-commits.js';
-import { makeGetCommitMetadata } from '../tools/get-commit-metadata.js';
-import { makeGetMergeInfoTool } from '../tools/get-merge-info.js';
-import { makeGetDiffTool } from '../tools/get-diff.js';
-import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
-import { makeGetBlameTool } from '../tools/get-blame-tool.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
-import type { FileEdit } from '../utils/edit-file.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
+import type { ToolContext } from '../utils/tool-context.js';
+import type { FileEditOptions } from '../utils/edit-file.js';
+import {
+  gitMergeTarget,
+  gitMergeBase,
+  formatMergeInfo,
+} from '../utils/git-utils.js';
+import { dedent } from '../utils/dedent.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -29,7 +30,19 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
-  const edits: FileEdit[] = [];
+  const context: ToolContext = { lastFileRead: null };
+  const edits: FileEditOptions[] = [];
+
+  // Try to get merge information (may fail in case of rebase)
+  let mergeInfo: string | null = null;
+  try {
+    const mergeTarget = await gitMergeTarget(repoPath);
+    const mergeBase = await gitMergeBase(repoPath, 'HEAD', mergeTarget);
+    mergeInfo = formatMergeInfo(mergeTarget, mergeBase);
+  } catch {
+    // Merge info not available (likely a rebase operation)
+    console.log('Merge info not available - this might be a rebase operation');
+  }
 
   const llm = new ChatGoogleGenerativeAI({
     model: 'gemini-2.5-flash',
@@ -37,18 +50,12 @@ export async function resolveConflicts(repoPath: string) {
   });
 
   const tools: StructuredToolInterface[] = [
-    makeReadTool(repoPath),
-    makeEditTool(repoPath, edits),
+    makeReadTool(repoPath, context),
+    makeEditTool(repoPath, edits, context),
     makeLsTool(repoPath),
-    makeGetBlameTool(repoPath),
-    makeGetChangedFilesTool(repoPath),
-    makeGetCommitMetadata(repoPath),
-    makeGetDiffTool(repoPath),
     makeGetLastMergeCommitsTool(repoPath),
-    makeGetMergeInfoTool(repoPath),
-    makeGetRecentCommitsTool(repoPath),
     makeRipgrepTool(repoPath),
-    makeGlobTool(),
+    makeGlobTool(repoPath),
   ];
 
   const agent = createReactAgent({
@@ -62,18 +69,13 @@ export async function resolveConflicts(repoPath: string) {
       date: new Date(),
       workingDirectory: repoPath,
     },
+    mergeInfo,
   });
 
-  const userPrompt = `
+  const userPrompt = dedent`
     Resolve the conflicts in the following files:
     ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
-  `;
-
-  console.log('SYSTEM PROMPT:\n');
-  console.log(systemPrompt);
-
-  console.log('\n\nUSER PROMPT:\n');
-  console.log(userPrompt);
+    `;
 
   const messages = [
     {
@@ -86,10 +88,7 @@ export async function resolveConflicts(repoPath: string) {
     },
   ];
 
-  const result = await agent.invoke({ messages });
-
-  console.log('\n\nRESPONSE:\n');
-  console.log(result);
+  await agent.invoke({ messages });
 
   return edits;
 }

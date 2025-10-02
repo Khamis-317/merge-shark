@@ -2,7 +2,7 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { ripgrep } from '../utils/rip-grep.js';
 import path from 'path';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 
 export function makeRipgrepTool(repoPath: string) {
   const ripgrepSchema = z.object({

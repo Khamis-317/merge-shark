@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 
 export const DEFAULT_FILE_READ_LINES_LIMIT = 2000;
 
-export interface FileEdit {
+export interface FileEditOptions {
   path: string;
   oldText: string;
   newText: string;
@@ -52,11 +52,15 @@ export async function checkEditValidity(
   const numOfOccurences = data.split(oldText).length - 1;
 
   if (numOfOccurences === 0) {
-    return `Edit failed: the specified oldText was not found in ${path}.`;
+    throw new Error(
+      `Edit failed: the specified oldText was not found in ${path}.`
+    );
   }
 
   if (numOfOccurences > 1 && !replaceAll) {
-    return `Edit failed: oldText occurs ${numOfOccurences} times in ${path}.`;
+    throw new Error(
+      `Edit failed: oldText occurs ${numOfOccurences} times in ${path}.`
+    );
   }
 
   return null;

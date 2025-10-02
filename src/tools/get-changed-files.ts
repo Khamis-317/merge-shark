@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import { getChangedFilesInCommit } from '../utils/git-utils.js';
 
 export function makeGetChangedFilesTool(repoPath: string) {
@@ -10,18 +10,8 @@ export function makeGetChangedFilesTool(repoPath: string) {
 
   return tool(
     async ({ commitHash }: { commitHash: string }) => {
-      try {
-        const changedFiles = await getChangedFilesInCommit(
-          repoPath,
-          commitHash
-        );
-        return changedFiles;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error retrieving changed files for commit ${commitHash}: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const changedFiles = await getChangedFilesInCommit(repoPath, commitHash);
+      return changedFiles;
     },
     {
       name: 'get_changed_files_in_commit',
@@ -38,8 +28,7 @@ export function makeGetChangedFilesTool(repoPath: string) {
         When to use:
         - To see what files were affected by a specific commit
         - To understand the scope of changes in a commit
-        - Commit hashes can be obtained from "get_merge_info", "get_recent_commits_for_file", "get_last_merge_commits", and "get_blame"
-        - Use the returned file paths with "get_diff", "get_recent_commits_for_file", and "get_blame" for detailed analysis of specific files
+        - Use the returned file paths with "git_diff", "git_log", and "git_blame" for detailed analysis of specific files
       `,
       schema: changedFilesSchema,
     }

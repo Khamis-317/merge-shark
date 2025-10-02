@@ -1,9 +1,9 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { globUtil } from '../utils/glob-files.js';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 
-export function makeGlobTool() {
+export function makeGlobTool(repoPath: string) {
   const globSchema = z.object({
     pattern: z.string().optional(),
     ignoredPatterns: z.array(z.string()).optional(),
@@ -18,7 +18,7 @@ export function makeGlobTool() {
       ignoredPatterns?: string[];
     }) => {
       try {
-        const matchedFiles = await globUtil(pattern, ignoredPatterns);
+        const matchedFiles = await globUtil(repoPath, pattern, ignoredPatterns);
         return matchedFiles.join('\n');
       } catch (err: unknown) {
         if (err instanceof Error) {

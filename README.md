@@ -20,8 +20,7 @@ AI-powered Git conflict resolver.
    ```
 4. Run the CLI.
    ```
-   npm run build # Build the CLI.
-   npm run start -- resolve /path/to/git/repo
+   npm run start -- --repo /path/to/git/repo
    ```
 
 ## Tooling

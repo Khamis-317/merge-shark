@@ -1,10 +1,15 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import path from 'path';
-import { checkEditValidity, type FileEdit } from '../utils/edit-file.js';
+import type { ToolContext } from '../utils/tool-context.js';
+import { checkEditValidity, type FileEditOptions } from '../utils/edit-file.js';
 
-export function makeEditTool(repoPath: string, edits: FileEdit[]) {
+export function makeEditTool(
+  repoPath: string,
+  edits: FileEditOptions[],
+  context: ToolContext
+) {
   const editSchema = z.object({
     relativePath: z.string(),
     oldText: z.string(),
@@ -27,6 +32,12 @@ export function makeEditTool(repoPath: string, edits: FileEdit[]) {
       try {
         const absolutePath: string = path.resolve(repoPath, relativePath);
 
+        if (context.lastFileRead !== absolutePath) {
+          throw new Error(
+            `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
+          );
+        }
+
         const editError = await checkEditValidity(
           absolutePath,
           oldText,
@@ -34,7 +45,7 @@ export function makeEditTool(repoPath: string, edits: FileEdit[]) {
         );
         if (editError) return editError;
 
-        const edit: FileEdit = {
+        const edit: FileEditOptions = {
           path: absolutePath,
           oldText,
           newText,
