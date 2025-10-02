@@ -1,13 +1,13 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import path from 'path';
-import { checkEditValidity, type FileEdit } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
+import { checkEditValidity, type FileEditOptions } from '../utils/edit-file.js';
 
 export function makeEditTool(
   repoPath: string,
-  edits: FileEdit[],
+  edits: FileEditOptions[],
   context: ToolContext
 ) {
   const editSchema = z.object({
@@ -45,7 +45,7 @@ export function makeEditTool(
         );
         if (editError) return editError;
 
-        const edit: FileEdit = {
+        const edit: FileEditOptions = {
           path: absolutePath,
           oldText,
           newText,

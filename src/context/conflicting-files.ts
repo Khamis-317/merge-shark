@@ -11,5 +11,5 @@ export async function getConflictingFiles(repoPath: string) {
   return result.stdout
     .toString()
     .split('\n')
-    .filter((file) => file !== '');
+    .filter((file) => file.length > 0);
 }
