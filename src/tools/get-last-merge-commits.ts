@@ -8,13 +8,13 @@ import {
 
 export function makeGetLastMergeCommitsTool(repoPath: string) {
   const lastMergeCommitsSchema = z.object({
-    n: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
+    limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
   });
 
   return tool(
-    async ({ n = DEFAULT_MAX_COMMITS_PER_FILE }: { n: number }) => {
+    async ({ limit = DEFAULT_MAX_COMMITS_PER_FILE }: { limit: number }) => {
       try {
-        const mergeCommitsOutput = await getLastMergeCommits(repoPath, n);
+        const mergeCommitsOutput = await getLastMergeCommits(repoPath, limit);
         return mergeCommitsOutput;
       } catch (err: unknown) {
         if (err instanceof Error) {
@@ -26,10 +26,10 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
     {
       name: 'get_last_merge_commits',
       description: dedent`
-                Retrieves detailed information about the last N merge commits reachable from HEAD.
+                Retrieves detailed information about the last merge commits reachable from HEAD.
 
                 Input:
-                - n: maximum number of merge commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
+                - limit: maximum number of merge commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 
                 Output:
                 - Detailed merge commit information in format: hash|author|date|message (one commit per line)

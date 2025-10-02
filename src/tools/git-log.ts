@@ -10,25 +10,25 @@ export function makeGitLogTool(repoPath: string) {
   const recentCommitsSchema = z.object({
     relativePath: z.string(),
     branchRef: z.string().default('HEAD').optional(),
-    n: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
+    limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
   });
 
   return tool(
     async ({
       relativePath,
       branchRef = 'HEAD',
-      n = DEFAULT_MAX_COMMITS_PER_FILE,
+      limit = DEFAULT_MAX_COMMITS_PER_FILE,
     }: {
       relativePath: string;
       branchRef: string;
-      n: number;
+      limit: number;
     }) => {
       try {
         const data = await getLastCommitsForFile(
           repoPath,
           relativePath,
           branchRef,
-          n
+          limit
         );
         return data;
       } catch (err: unknown) {
@@ -45,7 +45,7 @@ export function makeGitLogTool(repoPath: string) {
             Input:
             - relativePath: relative path to the file in the repository (e.g., "src/index.ts")
             - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
-            - n: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
+            - limit: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 
             Output:
             - Detailed commit information in format: hash|author|date|message (one commit per line)

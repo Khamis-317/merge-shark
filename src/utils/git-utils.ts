@@ -42,21 +42,21 @@ export async function gitMergeBase(
 }
 
 /**
- * Retrieves detailed information about the last N commits that modified a specific file.
+ * Retrieves detailed information about the last commits that modified a specific file.
  *
  * @param repoPath The absolute path to the git repository.
  * @param filePath The relative path to the file within the repository.
  * @param branchRef The branch or commit reference to search from.
- * @param n The maximum number of commits to return.
+ * @param limit The maximum number of commits to return.
  * @returns A string containing detailed commit info in format: hash|author|date|message (one per line).
  */
 export async function getLastCommitsForFile(
   repoPath: string,
   filePath: string,
   branchRef: string,
-  n: number
+  limit: number
 ): Promise<string> {
-  const command = `git log -n ${n} --pretty=format:"%H|%an|%ad|%s" --date=short ${branchRef} -- ${filePath}`;
+  const command = `git log -n ${limit} --pretty=format:"%H|%an|%ad|%s" --date=short ${branchRef} -- ${filePath}`;
   const result = await exec(command, { cwd: repoPath });
 
   if (result.stderr) {
@@ -138,17 +138,17 @@ export async function gitBlame(
 }
 
 /**
- * Retrieves detailed information about the last N merge commits from the repository.
+ * Retrieves detailed information about the last merge commits from the repository.
  *
  * @param repoPath The absolute path to the git repository.
- * @param n The maximum number of merge commits to return.
+ * @param limit The maximum number of merge commits to return.
  * @returns A string containing detailed merge commit info in format: hash|author|date|message (one per line).
  */
 export async function getLastMergeCommits(
   repoPath: string,
-  n: number
+  limit: number
 ): Promise<string> {
-  const command = `git log --merges -n ${n} --pretty=format:"%H|%an|%ad|%s" --date=short`;
+  const command = `git log --merges -n ${limit} --pretty=format:"%H|%an|%ad|%s" --date=short`;
   const result = await exec(command, { cwd: repoPath });
 
   if (result.stderr) {
