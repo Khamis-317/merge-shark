@@ -27,7 +27,6 @@ export function makeGitDiffTool(repoPath: string) {
       name: 'git_diff',
       description: dedent`
         Retrieves the diff for a specific file between two commits (or branches).
-
         Input:
         - from: the baseline commit hash or branch name.
         - to: the target commit hash or branch name.
