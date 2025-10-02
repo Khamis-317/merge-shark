@@ -16,6 +16,7 @@ import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js'
 import { makeEditTool } from '../tools/edit.js';
 import type { FileEdit } from '../utils/edit-file.js';
 import { makeLsTool } from '../tools/ls.js';
+import { makeRipgrepTool } from '../tools/ripgrep.js';
 
 export async function resolveConflicts(repoPath: string) {
   const conflictingFiles = await getConflictingFiles(repoPath);
@@ -45,6 +46,7 @@ export async function resolveConflicts(repoPath: string) {
     makeGetLastMergeCommitsTool(repoPath),
     makeGetMergeInfoTool(repoPath),
     makeGetRecentCommitsTool(repoPath),
+    makeRipgrepTool(repoPath),
   ];
 
   const agent = createReactAgent({
