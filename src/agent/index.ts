@@ -12,6 +12,7 @@ import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGitBlameTool } from '../tools/git-blame.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
+import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
 import {
   gitMergeTarget,
@@ -30,6 +31,7 @@ export async function resolveConflicts(repoPath: string) {
       };
     })
   );
+  const context: ToolContext = { lastFileRead: null };
   const edits: FileEditOptions[] = [];
 
   // Try to get merge information (may fail in case of rebase)
@@ -49,8 +51,8 @@ export async function resolveConflicts(repoPath: string) {
   });
 
   const tools: StructuredToolInterface[] = [
-    makeReadTool(repoPath),
-    makeEditTool(repoPath, edits),
+    makeReadTool(repoPath, context),
+    makeEditTool(repoPath, edits, context),
     makeGitBlameTool(repoPath),
     makeGitDiffTool(repoPath),
     makeGetChangedFilesTool(repoPath),
