@@ -8,7 +8,7 @@ export const DEFAULT_MAX_COMMITS_PER_FILE = 7;
  * @param repoPath The absolute path to the git repository.
  * @returns The commit hash of the merge target.
  */
-export async function getMergeTarget(repoPath: string): Promise<string> {
+export async function gitMergeTarget(repoPath: string): Promise<string> {
   const command: string = 'git rev-parse MERGE_HEAD';
   const result = await exec(command, { cwd: repoPath });
 
@@ -27,7 +27,7 @@ export async function getMergeTarget(repoPath: string): Promise<string> {
  * @param theirs The incoming branch reference.
  * @returns The commit hash of the merge base.
  */
-export async function getMergeBase(
+export async function gitMergeBase(
   repoPath: string,
   ours: string,
   theirs: string
@@ -42,47 +42,27 @@ export async function getMergeBase(
 }
 
 /**
- * Retrieves the last N commit hashes that modified a specific file.
+ * Retrieves detailed information about the last commits that modified a specific file.
  *
  * @param repoPath The absolute path to the git repository.
  * @param filePath The relative path to the file within the repository.
  * @param branchRef The branch or commit reference to search from.
- * @param n The maximum number of commits to return.
- * @returns A string containing commit hashes, one per line.
+ * @param limit The maximum number of commits to return.
+ * @returns A string containing detailed commit info in format: hash|author|date|message (one per line).
  */
 export async function getLastCommitsForFile(
   repoPath: string,
   filePath: string,
   branchRef: string,
-  n: number
+  limit: number
 ): Promise<string> {
-  const command = `git log -n ${n} --pretty=format:"%H" ${branchRef} -- ${filePath}`;
+  const command = `git log -n ${limit} --pretty=format:"%H|%an|%ad|%s" --date=short ${branchRef} -- ${filePath}`;
   const result = await exec(command, { cwd: repoPath });
 
   if (result.stderr) {
     throw new Error(result.stderr);
   }
 
-  return result.stdout.toString().trim();
-}
-
-/**
- * Retrieves detailed metadata for a specific commit.
- *
- * @param repoPath The absolute path to the git repository.
- * @param commitHash The commit hash to get metadata for.
- * @returns A string containing author name, date, and full commit message.
- */
-export async function getCommitMetaData(
-  repoPath: string,
-  commitHash: string
-): Promise<string> {
-  const command = `git log -1 --pretty=format:"%an%n%ad%n%B" ${commitHash}`;
-  const result = await exec(command, { cwd: repoPath });
-
-  if (result.stderr) {
-    throw new Error(result.stderr);
-  }
   return result.stdout.toString().trim();
 }
 
@@ -95,7 +75,7 @@ export async function getCommitMetaData(
  * @param filePath The relative path to the file within the repository.
  * @returns The unified diff output as a string.
  */
-export async function getDiffForFile(
+export async function gitDiff(
   repoPath: string,
   commitHashX: string,
   commitHashY: string,
@@ -141,7 +121,7 @@ export async function getChangedFilesInCommit(
  * @param endLine The ending line number (1-based, inclusive).
  * @returns Git blame output showing commit info and content for each line.
  */
-export async function getBlame(
+export async function gitBlame(
   repoPath: string,
   relativePath: string,
   startLine: number,
@@ -158,17 +138,17 @@ export async function getBlame(
 }
 
 /**
- * Retrieves the last N merge commits from the repository.
+ * Retrieves detailed information about the last merge commits from the repository.
  *
  * @param repoPath The absolute path to the git repository.
- * @param n The maximum number of merge commits to return.
- * @returns A string containing merge commit hashes, one per line.
+ * @param limit The maximum number of merge commits to return.
+ * @returns A string containing detailed merge commit info in format: hash|author|date|message (one per line).
  */
 export async function getLastMergeCommits(
   repoPath: string,
-  n: number
+  limit: number
 ): Promise<string> {
-  const command = `git log --merges -n ${n} --pretty=format:"%H"`;
+  const command = `git log --merges -n ${limit} --pretty=format:"%H|%an|%ad|%s" --date=short`;
   const result = await exec(command, { cwd: repoPath });
 
   if (result.stderr) {
