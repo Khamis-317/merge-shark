@@ -34,18 +34,19 @@ export function makeGitLogTool(repoPath: string) {
     {
       name: 'git_log',
       description: dedent`
-          Retrieves detailed commit history for a specific file, including commit hash, author, date, and message.
-            Input:
-            - relativeFilePath: relative path to the file in the repository (e.g., "src/index.ts")
-            - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
-            - limit: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
+        Retrieves detailed commit history for a specific file, including commit hash, author, date, and message.
 
-            Output:
-            - Detailed commit information in format: hash|author|date|message (one commit per line)
+        Input:
+        - relativeFilePath: relative path to the file in the repository (e.g., "src/index.ts")
+        - branchRef: branch name or commit ref (HEAD, MERGE_HEAD, etc.) - defaults to "HEAD"
+        - limit: maximum number of commits to return - defaults to ${DEFAULT_MAX_COMMITS_PER_FILE}
 
-            When to use:
-            - To understand recent history and context of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD)
-            - Use the returned commit hashes with "git_diff" or "git_blame" for detailed analysis if the commit appears relevant based on its message
+        Output:
+        - Detailed commit information in format: hash|author|date|message (one commit per line)
+
+        When to use:
+        - To understand recent history and context of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD)
+        - Use the returned commit hashes with "git_diff" or "git_blame" for detailed analysis if the commit appears relevant based on its message
         `,
       schema: recentCommitsSchema,
     }

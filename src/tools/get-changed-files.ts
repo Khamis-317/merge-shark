@@ -29,7 +29,7 @@ export function makeGetChangedFilesTool(repoPath: string) {
         - To see what files were affected by a specific commit
         - To understand the scope of changes in a commit
         - Use the returned file paths with "git_diff", "git_log", and "git_blame" for detailed analysis of specific files
-      `,
+        `,
       schema: changedFilesSchema,
     }
   );
