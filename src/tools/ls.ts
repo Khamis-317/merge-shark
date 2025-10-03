@@ -6,12 +6,12 @@ import { dedent } from '../utils/dedent.js';
 
 export function makeLsTool(repoPath: string) {
   const lsSchema = z.object({
-    dirPath: z.string(),
+    directoryPath: z.string(),
   });
 
   return tool(
-    async ({ dirPath }: { dirPath: string }) => {
-      const absolutePath = path.resolve(repoPath, dirPath);
+    async ({ directoryPath }: { directoryPath: string }) => {
+      const absolutePath = path.resolve(repoPath, directoryPath);
       const listedFiles = await listFiles(absolutePath);
       return listedFiles.map((file) => file).join('\n');
     },
