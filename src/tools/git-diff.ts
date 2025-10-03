@@ -40,7 +40,7 @@ export function makeGitDiffTool(repoPath: string) {
         - To see exactly what changed in a file between two commits or branches
         - Commit hashes can be obtained from "git_log", "get_last_merge_commits", and "git_blame"
         - File paths can be obtained from "get_changed_files_in_commit"
-      `,
+        `,
       schema: diffSchema,
     }
   );

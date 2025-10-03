@@ -71,7 +71,7 @@ export function makeEditTool(
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
         The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
-      `,
+        `,
       schema: editSchema,
     }
   );

@@ -40,15 +40,15 @@ export function makeReadTool(repoPath: string, context: ToolContext) {
     {
       name: 'read',
       description: dedent`
-          Reads a file from the codebase to provide more context on how to resolve the conflict.
-          You can access any file from the codebase by providing the relative path to the tool (for example src/index.ts).
-          Use this tool to read files that may be relevant to the code conflict. In particular, focus on files that are 
-          directly imported or included in the code involved in the conflict.
-          By default it reads up to ${DEFAULT_FILE_READ_LINES_LIMIT} lines starting from the beginning of the file.
-          You can optionally specify a line offset and limit (especially handy for long files)
-          but it's recommended to read the whole file by not providing these parameters.
-          You need to use other tools with this tool (if they are available):
-          `,
+        Reads a file from the codebase to provide more context on how to resolve the conflict.
+        You can access any file from the codebase by providing the relative path to the tool (for example src/index.ts).
+        Use this tool to read files that may be relevant to the code conflict. In particular, focus on files that are 
+        directly imported or included in the code involved in the conflict.
+        By default it reads up to ${DEFAULT_FILE_READ_LINES_LIMIT} lines starting from the beginning of the file.
+        You can optionally specify a line offset and limit (especially handy for long files)
+        but it's recommended to read the whole file by not providing these parameters.
+        You need to use other tools with this tool (if they are available):
+        `,
       schema: readSchema,
     }
   );
