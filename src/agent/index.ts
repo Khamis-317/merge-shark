@@ -1,4 +1,4 @@
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatGoogle } from '@langchain/google-gauth';
 import path from 'node:path';
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
@@ -45,9 +45,11 @@ export async function resolveConflicts(repoPath: string) {
     console.log('Merge info not available - this might be a rebase operation');
   }
 
-  const llm = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.5-flash',
+  const llm = new ChatGoogle({
+    model: 'gemini-2.5-pro',
     temperature: 0.2,
+    verbose: true,
+    thinkingBudget: 24576, // Maximum thinking budget for Gemini 2.5 Flash
   });
 
   const tools: StructuredToolInterface[] = [

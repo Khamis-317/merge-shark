@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@langchain/core": "^0.3.75",
-    "@langchain/google-genai": "^0.2.17",
+    "@langchain/google-gauth": "^0.2.18",
     "@langchain/langgraph": "^0.4.9",
     "chalk": "^5.6.2",
     "cli-highlight": "^2.1.11",
