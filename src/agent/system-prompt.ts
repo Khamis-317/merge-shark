@@ -1,4 +1,4 @@
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import { formatDate } from '../utils/format-date.js';
 
 export interface SystemInfo {
@@ -9,6 +9,7 @@ export interface SystemInfo {
 
 export interface SystemPromptOptions {
   systemInfo: SystemInfo;
+  mergeInfo?: string | null;
 }
 
 export function createSystemPrompt(options: SystemPromptOptions) {
@@ -48,35 +49,39 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </resolution_steps>
 
     <resolution_format>
-    Once you figure out the resolution for each conflict apply those resolutions using edit tool.
-
     Once you figure out the resolution for each conflict, you MUST apply resolutions for each of the conflicted files through calling either:
     - **edit** tool to perform a single edit in a file.
     Usage Example:
     {
-      "relativePath": "src/utils/helpers.js",
-      "edit": {
-        "oldText": "function add(a, b) { return a + b; }",
-        "newText": "function add(a, b) { return Number(a) + Number(b); }",
-        "replaceAll": false
+      "name": "edit",
+      "args": {
+        "relativePath": "src/utils/helpers.js",
+        "edit": {
+          "oldText": "function add(a, b) { return a + b; }",
+          "newText": "function add(a, b) { return Number(a) + Number(b); }",
+          "replaceAll": false
+        }
       }
     }
     - **multi-edit** tool to perform multiple edits in a file within one operation.
     Usage Example:
     {
-      "relativePath": "src/components/Button.jsx",
-      "newEdits": [
-        {
-          "oldText": "className=\"btn\"",
-          "newText": "className=\"btn btn-primary\"",
-          "replaceAll": true
-        },
-        {
-          "oldText": "export default Button;",
-          "newText": "export default React.memo(Button);",
-          "replaceAll": false
-        }
-      ]
+      "name": "multi-edit",
+      "args": {
+        "relativePath": "src/components/Button.jsx",
+        "newEdits": [
+          {
+            "oldText": "className=\"btn\"",
+            "newText": "className=\"btn btn-primary\"",
+            "replaceAll": true
+          },
+          {
+            "oldText": "export default Button;",
+            "newText": "export default React.memo(Button);",
+            "replaceAll": false
+          }
+        ]
+      }
     }
 
     Before editing, you are required to call the read tool on the same file you intend to modify.
@@ -103,13 +108,26 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Always reason carefully before using a tool, and only produce the Final Answer once you have enough information.
     </tools>
 
+    ${
+      options.mergeInfo
+        ? `<merge_context>
+    The following merge information is available for this conflict resolution:
+    ${options.mergeInfo}
+    
+    This information shows the merge target (the branch being merged in) and the merge base (the common ancestor commit).
+    Use this context when you need to pass an argument that contains branchRef to one of the Git tools.
+    Note: If this section is missing, the operation might be a rebase rather than a merge.
+    </merge_context>
 
+    `
+        : ''
+    }
     <system_information>
     Operating system: ${options.systemInfo.operatingSystem}
     Date: ${formatDate(options.systemInfo.date)}
     Current working directory: ${options.systemInfo.workingDirectory}
     </system_information>
-  `;
+    `;
 
   return prompt;
 }

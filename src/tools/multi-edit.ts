@@ -1,14 +1,19 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import dedent from 'dedent';
+import { dedent } from '../utils/dedent.js';
 import {
   checkEditValidity,
   getFileContent,
-  type Edit,
-  type FileEdit,
+  type EditOptions,
+  type FileEditOptions,
 } from '../utils/edit-file.js';
 import path from 'path';
-export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
+import type { ToolContext } from '../utils/tool-context.js';
+export function makeMultiEditTool(
+  repoPath: string,
+  edits: FileEditOptions[],
+  context: ToolContext
+) {
   const multiEditSchema = z.object({
     relativePath: z.string(),
     newEdits: z.array(
@@ -25,11 +30,16 @@ export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
       newEdits,
     }: {
       relativePath: string;
-      newEdits: Edit[];
+      newEdits: EditOptions[];
     }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
+      if (context.lastFileRead !== absolutePath) {
+        throw new Error(
+          `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
+        );
+      }
       let fileContent = await getFileContent(absolutePath);
-      const validEdits: FileEdit[] = [];
+      const validEdits: FileEditOptions[] = [];
 
       for (const edit of newEdits) {
         const editError = await checkEditValidity(
@@ -44,7 +54,7 @@ export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
           ? fileContent.replaceAll(edit.oldText, edit.newText)
           : fileContent.replace(edit.oldText, edit.newText);
 
-        const fileEdit: FileEdit = {
+        const fileEdit: FileEditOptions = {
           path: absolutePath,
           ...edit,
         };
@@ -58,7 +68,7 @@ export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
       name: 'multi-edit',
       description: dedent`
         This is a tool for making multiple edits to a single file in one operation.
-        Prefer this tool over the Edit tool when you need to make multiple edits to the same file.
+        Prefer this tool over the edit tool when you need to make multiple edits to the same file.
 
         Before using this tool:
         1. Use the read tool to understand the file's contents and context
@@ -76,7 +86,7 @@ export function makeMultiEditTool(repoPath: string, edits: FileEdit[]) {
         - Each edit operates on the result of the previous edit
         - If any edit fails, none will be applied
         - This tool is ideal when you need to make several changes to different parts of the same file
-              `,
+      `,
       schema: multiEditSchema,
     }
   );

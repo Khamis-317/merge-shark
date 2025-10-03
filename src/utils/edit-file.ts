@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
 
-export interface Edit {
+export interface EditOptions {
   oldText: string;
   newText: string;
   replaceAll: boolean;
 }
 
-export interface FileEdit extends Edit {
+export interface FileEditOptions extends EditOptions {
   path: string;
 }
 
@@ -19,7 +19,7 @@ export interface FileEdit extends Edit {
  * - newText The text the will be used for the edit.
  * - replaceAll Option to replace all instances of `oldText` with `newText`.
  */
-export async function editFile(edit: FileEdit) {
+export async function editFile(edit: FileEditOptions) {
   const data = await fs.readFile(edit.path, 'utf-8');
 
   const editedData = edit.replaceAll
@@ -59,11 +59,15 @@ export async function checkEditValidity(
   const numOfOccurences = content.split(oldText).length - 1;
 
   if (numOfOccurences === 0) {
-    return `Edit failed: the specified oldText was not found in ${path}.`;
+    throw new Error(
+      `Edit failed: the specified oldText was not found in ${path}.`
+    );
   }
 
   if (numOfOccurences > 1 && !replaceAll) {
-    return `Edit failed: oldText occurs ${numOfOccurences} times in ${path}.`;
+    throw new Error(
+      `Edit failed: oldText occurs ${numOfOccurences} times in ${path}.`
+    );
   }
 
   return null;

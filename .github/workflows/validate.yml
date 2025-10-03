@@ -1,4 +1,4 @@
-name: Build and Lint
+name: Validate
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-lint:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -18,3 +18,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run lint
+      - run: npm run test
