@@ -11,16 +11,9 @@ export function makeLsTool(repoPath: string) {
 
   return tool(
     async ({ dirPath }: { dirPath: string }) => {
-      try {
-        const absolutePath = path.resolve(repoPath, dirPath);
-        const listedFiles = await listFiles(absolutePath);
-        return listedFiles.map((file) => file).join('\n');
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error listing directory: ${err.message}`;
-        }
-        return `An unknown error occurred: ${err}`;
-      }
+      const absolutePath = path.resolve(repoPath, dirPath);
+      const listedFiles = await listFiles(absolutePath);
+      return listedFiles.map((file) => file).join('\n');
     },
     {
       name: 'ls',
@@ -35,10 +28,3 @@ export function makeLsTool(repoPath: string) {
     }
   );
 }
-
-/** 
-Lists files and directories in a given path. 
-The path parameter must be an absolute path, not a relative path. 
-You can optionally provide an array of glob patterns to ignore with the ignore parameter. 
-You should generally prefer the Glob and Grep tools, if you know which directories to search.
-*/
