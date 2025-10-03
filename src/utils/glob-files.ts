@@ -1,7 +1,6 @@
 import { glob } from 'glob';
 
 /**
- *
  * @param pattern glob pattern to search for
  * @param ignoredPatterns optional array of glob patterns to ignore
  * @returns files matching the glob pattern

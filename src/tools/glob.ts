@@ -27,7 +27,7 @@ export function makeGlobTool(repoPath: string) {
         This tool is useful for locating files in the codebase based on patterns.
         Provide a glob pattern to search for files.
         You can also provide an array of glob patterns to ignore certain files or directories.
-      `,
+        `,
       schema: globSchema,
     }
   );

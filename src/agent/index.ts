@@ -13,6 +13,10 @@ import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
+import { makeGitBlameTool } from '../tools/git-blame.js';
+import { makeGitDiffTool } from '../tools/git-diff.js';
+import { makeGitLogTool } from '../tools/git-log.js';
+import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import {
   gitMergeTarget,
   gitMergeBase,
@@ -56,6 +60,10 @@ export async function resolveConflicts(repoPath: string) {
     makeGetLastMergeCommitsTool(repoPath),
     makeRipgrepTool(repoPath),
     makeGlobTool(repoPath),
+    makeGitBlameTool(repoPath),
+    makeGitDiffTool(repoPath),
+    makeGitLogTool(repoPath),
+    makeGetChangedFilesTool(repoPath),
   ];
 
   const agent = createReactAgent({

@@ -23,7 +23,7 @@ export function makeLsTool(repoPath: string) {
         Use this tool when you need to explore the structure of the codebase.
         Sub-Directories will have a trailing slash (/).
         Provide a relative path to the directory you want to list (e.g., "src" or "src/tools").
-      `,
+        `,
       schema: lsSchema,
     }
   );

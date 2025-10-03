@@ -61,17 +61,12 @@ export async function ripgrep(
   caseSensitive = false,
   ignored?: string[]
 ): Promise<string[]> {
-  try {
-    const result = await rgSearch(
-      repoPath,
-      searchPath,
-      pattern,
-      caseSensitive,
-      ignored
-    );
-    return result.split('\n').filter((line) => line.trim() !== '');
-  } catch (error) {
-    console.error('Error executing ripgrep:', error);
-    return [];
-  }
+  const result = await rgSearch(
+    repoPath,
+    searchPath,
+    pattern,
+    caseSensitive,
+    ignored
+  );
+  return result.split('\n').filter((line) => line.trim() !== '');
 }
