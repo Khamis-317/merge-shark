@@ -6,14 +6,17 @@ import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import type { StructuredToolInterface } from '@langchain/core/tools';
-import { makeGitLogTool } from '../tools/git-log.js';
-import { makeGitDiffTool } from '../tools/git-diff.js';
-import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
-import { makeGitBlameTool } from '../tools/git-blame.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import { makeEditTool } from '../tools/edit.js';
+import { makeLsTool } from '../tools/ls.js';
+import { makeRipgrepTool } from '../tools/ripgrep.js';
+import { makeGlobTool } from '../tools/glob.js';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
+import { makeGitBlameTool } from '../tools/git-blame.js';
+import { makeGitDiffTool } from '../tools/git-diff.js';
+import { makeGitLogTool } from '../tools/git-log.js';
+import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import {
   gitMergeTarget,
   gitMergeBase,
@@ -53,11 +56,14 @@ export async function resolveConflicts(repoPath: string) {
   const tools: StructuredToolInterface[] = [
     makeReadTool(repoPath, context),
     makeEditTool(repoPath, edits, context),
+    makeLsTool(repoPath),
+    makeGetLastMergeCommitsTool(repoPath),
+    makeRipgrepTool(repoPath),
+    makeGlobTool(repoPath),
     makeGitBlameTool(repoPath),
     makeGitDiffTool(repoPath),
-    makeGetChangedFilesTool(repoPath),
-    makeGetLastMergeCommitsTool(repoPath),
     makeGitLogTool(repoPath),
+    makeGetChangedFilesTool(repoPath),
   ];
 
   const agent = createReactAgent({
