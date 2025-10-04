@@ -9,20 +9,31 @@ import {
 } from '../utils/edit-file.js';
 import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
+
 export function makeMultiEditTool(
   repoPath: string,
   edits: FileEditOptions[],
   context: ToolContext
 ) {
   const multiEditSchema = z.object({
-    relativePath: z.string(),
-    newEdits: z.array(
-      z.object({
-        oldText: z.string(),
-        newText: z.string(),
-        replaceAll: z.boolean().optional().default(false),
-      })
-    ),
+    relativePath: z.string().describe('The relative path to the file to edit'),
+    newEdits: z
+      .array(
+        z
+          .object({
+            oldText: z.string().describe('The text to be replaced'),
+            newText: z
+              .string()
+              .describe('The new text to replace the old text'),
+            replaceAll: z
+              .boolean()
+              .optional()
+              .default(false)
+              .describe('Whether to replace all occurrences of the old text'),
+          })
+          .describe('The edit operation to be performed')
+      )
+      .describe('The list of edits to perform on the file'),
   });
   return tool(
     async ({
@@ -33,22 +44,23 @@ export function makeMultiEditTool(
       newEdits: EditOptions[];
     }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
-      if (context.lastFileRead !== absolutePath) {
+
+      if (context.lastReadPath !== absolutePath) {
         throw new Error(
           `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
         );
       }
+
       let fileContent = await getFileContent(absolutePath);
       const validEdits: FileEditOptions[] = [];
 
       for (const edit of newEdits) {
-        const editError = await checkEditValidity(
+        await checkEditValidity(
           absolutePath,
           fileContent,
           edit.oldText,
           edit.replaceAll
         );
-        if (editError) return editError;
 
         fileContent = edit.replaceAll
           ? fileContent.replaceAll(edit.oldText, edit.newText)
@@ -62,13 +74,13 @@ export function makeMultiEditTool(
       }
 
       edits.push(...validEdits);
+
       return null;
     },
     {
       name: 'multi-edit',
       description: dedent`
         This is a tool for making multiple edits to a single file in one operation.
-        Prefer this tool over the edit tool when you need to make multiple edits to the same file.
 
         Before using this tool:
         1. Use the read tool to understand the file's contents and context
@@ -82,11 +94,11 @@ export function makeMultiEditTool(
         - replace_all: Replace all occurences of oldText. This parameter is optional and defaults to false.
 
         IMPORTANT:
+        - Prefer this tool over the edit tool when you need to make multiple edits to the same file
         - All edits are applied in sequence, in the order they are provided
         - Each edit operates on the result of the previous edit
         - If any edit fails, none will be applied
-        - This tool is ideal when you need to make several changes to different parts of the same file
-      `,
+        `,
       schema: multiEditSchema,
     }
   );

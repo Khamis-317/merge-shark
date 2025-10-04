@@ -47,8 +47,8 @@ export async function getFileContent(path: string) {
  * @param oldText The text that needs to be edited.
  * @param replaceAll Option to replace all instances of `oldText` with `newText`.
  *
- * @returns An error message if any, or `null` if the edit is valid.
- *
+ * @returns `null` if the edit is valid.
+ * @throws Error if the edit is invalid.
  */
 export async function checkEditValidity(
   path: string,

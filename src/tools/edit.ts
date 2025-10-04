@@ -32,37 +32,31 @@ export function makeEditTool(
       relativePath: string;
       edit: EditOptions;
     }) => {
-      try {
-        const absolutePath: string = path.resolve(repoPath, relativePath);
-        if (context.lastFileRead !== absolutePath) {
-          throw new Error(
-            `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
-          );
-        }
-        const fileContent = await getFileContent(absolutePath);
+      const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        const editError = await checkEditValidity(
-          absolutePath,
-          fileContent,
-          edit.oldText,
-          edit.replaceAll
+      if (context.lastReadPath !== absolutePath) {
+        throw new Error(
+          `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
         );
-        if (editError) return editError;
-
-        const fileEdit: FileEditOptions = {
-          path: absolutePath,
-          ...edit,
-        };
-
-        edits.push(fileEdit);
-
-        return null;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error editing file: ${err.message}`;
-        }
-        return `An unknown error occured: ${err}`;
       }
+
+      const fileContent = await getFileContent(absolutePath);
+
+      await checkEditValidity(
+        absolutePath,
+        fileContent,
+        edit.oldText,
+        edit.replaceAll
+      );
+
+      const fileEdit: FileEditOptions = {
+        path: absolutePath,
+        ...edit,
+      };
+
+      edits.push(fileEdit);
+
+      return null;
     },
     {
       name: 'edit',
@@ -73,7 +67,7 @@ export function makeEditTool(
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
         The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
-      `,
+        `,
       schema: editSchema,
     }
   );
