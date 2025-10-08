@@ -56,7 +56,7 @@ export function makeMultiEditTool(
 
       for (const edit of newEdits) {
         await checkEditValidity(
-          absolutePath,
+          relativePath,
           fileContent,
           edit.oldText,
           edit.replaceAll

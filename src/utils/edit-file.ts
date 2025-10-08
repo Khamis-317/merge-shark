@@ -13,11 +13,11 @@ export interface FileEditOptions extends EditOptions {
 /**
  * Edits a file.
  *
- * @param edit the edit to be applied, includes:
- * - path The path of the file to edit.
- * - oldText The text that needs to be edited.
- * - newText The text the will be used for the edit.
- * - replaceAll Option to replace all instances of `oldText` with `newText`.
+ * @param edit the edit to be applied
+ * @param edit.path The path of the file to edit.
+ * @param edit.oldText The text that needs to be edited.
+ * @param edit.The text the will be used for the edit.
+ * @param edit.replaceAll Option to replace all instances of `oldText` with `newText`.
  */
 export async function editFile(edit: FileEditOptions) {
   const data = await fs.readFile(edit.path, 'utf-8');
@@ -47,7 +47,6 @@ export async function getFileContent(path: string) {
  * @param oldText The text that needs to be edited.
  * @param replaceAll Option to replace all instances of `oldText` with `newText`.
  *
- * @returns `null` if the edit is valid.
  * @throws Error if the edit is invalid.
  */
 export async function checkEditValidity(
@@ -69,6 +68,4 @@ export async function checkEditValidity(
       `Edit failed: oldText occurs ${numOfOccurences} times in ${path}.`
     );
   }
-
-  return null;
 }

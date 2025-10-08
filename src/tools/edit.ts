@@ -5,7 +5,6 @@ import path from 'path';
 import {
   checkEditValidity,
   getFileContent,
-  type EditOptions,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
@@ -17,20 +16,22 @@ export function makeEditTool(
 ) {
   const editSchema = z.object({
     relativePath: z.string(),
-    edit: z.object({
-      oldText: z.string(),
-      newText: z.string(),
-      replaceAll: z.boolean().optional().default(false),
-    }),
+    oldText: z.string(),
+    newText: z.string(),
+    replaceAll: z.boolean().optional().default(false),
   });
 
   return tool(
     async ({
       relativePath,
-      edit,
+      oldText,
+      newText,
+      replaceAll,
     }: {
       relativePath: string;
-      edit: EditOptions;
+      oldText: string;
+      newText: string;
+      replaceAll: boolean;
     }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
@@ -42,16 +43,13 @@ export function makeEditTool(
 
       const fileContent = await getFileContent(absolutePath);
 
-      await checkEditValidity(
-        absolutePath,
-        fileContent,
-        edit.oldText,
-        edit.replaceAll
-      );
+      await checkEditValidity(relativePath, fileContent, oldText, replaceAll);
 
       const fileEdit: FileEditOptions = {
         path: absolutePath,
-        ...edit,
+        oldText,
+        newText,
+        replaceAll,
       };
 
       edits.push(fileEdit);
