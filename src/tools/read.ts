@@ -22,20 +22,13 @@ export function makeReadTool(repoPath: string, context: ToolContext) {
       limit: number;
       offset: number;
     }) => {
-      try {
-        const absolutePath: string = path.resolve(repoPath, relativePath);
+      const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        const data = await readFile(absolutePath, { limit, offset });
+      const data = await readFile(absolutePath, { limit, offset });
 
-        context.lastFileRead = absolutePath;
+      context.lastReadPath = absolutePath;
 
-        return data;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error reading file: ${err.message}`;
-        }
-        return `An unknown error occured: ${err}`;
-      }
+      return data;
     },
     {
       name: 'read',

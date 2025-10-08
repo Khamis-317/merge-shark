@@ -2,8 +2,12 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import path from 'path';
+import {
+  checkEditValidity,
+  getFileContent,
+  type FileEditOptions,
+} from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
-import { checkEditValidity, type FileEditOptions } from '../utils/edit-file.js';
 
 export function makeEditTool(
   repoPath: string,
@@ -14,7 +18,7 @@ export function makeEditTool(
     relativePath: z.string(),
     oldText: z.string(),
     newText: z.string(),
-    replaceAll: z.boolean().optional(),
+    replaceAll: z.boolean().optional().default(false),
   });
 
   return tool(
@@ -22,45 +26,35 @@ export function makeEditTool(
       relativePath,
       oldText,
       newText,
-      replaceAll = false,
+      replaceAll,
     }: {
       relativePath: string;
       oldText: string;
       newText: string;
       replaceAll: boolean;
     }) => {
-      try {
-        const absolutePath: string = path.resolve(repoPath, relativePath);
+      const absolutePath: string = path.resolve(repoPath, relativePath);
 
-        if (context.lastFileRead !== absolutePath) {
-          throw new Error(
-            `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
-          );
-        }
-
-        const editError = await checkEditValidity(
-          absolutePath,
-          oldText,
-          replaceAll
+      if (context.lastReadPath !== absolutePath) {
+        throw new Error(
+          `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
         );
-        if (editError) return editError;
-
-        const edit: FileEditOptions = {
-          path: absolutePath,
-          oldText,
-          newText,
-          replaceAll,
-        };
-
-        edits.push(edit);
-
-        return null;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          return `Error editing file: ${err.message}`;
-        }
-        return `An unknown error occured: ${err}`;
       }
+
+      const fileContent = await getFileContent(absolutePath);
+
+      await checkEditValidity(relativePath, fileContent, oldText, replaceAll);
+
+      const fileEdit: FileEditOptions = {
+        path: absolutePath,
+        oldText,
+        newText,
+        replaceAll,
+      };
+
+      edits.push(fileEdit);
+
+      return null;
     },
     {
       name: 'edit',

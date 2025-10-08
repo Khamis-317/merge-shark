@@ -54,7 +54,6 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     >>>>>>> master
     </example>
     </conflict_format>
-
     <resolution_guidelines>
     - Read the changes and make sure you understand WHY each change was introduced before making any edits. Use the 'read', 'git_blame', 'get_changed_files_in_commit', 'git_diff', 'get_last_merge_commits', and 'git_log' tools to understand the codebase and the history.
     - IMPORTANT: Don't combine both changes into one. Understand why both changes were introduced. Code might have been moved or removed altogether.
@@ -62,13 +61,15 @@ export function createSystemPrompt(options: SystemPromptOptions) {
       - CRITICAL: If a file imports another file that is relevant to the conflict, read that file.
       - CRITICAL: If a config file extends another config file relevant to the conflict, read the extended config file.
     </resolution_guidelines>
-
     <resolution_format>
-    Once you figure out the resolution for each conflict apply those resolutions using edit tool.
+    Once you figure out the resolution for each conflict, you MUST apply file edits by calling one of the following tools:
+    - **edit** tool to perform a single edit in a file.
+    - **multi-edit** tool to perform multiple edits in a file within one operation.
+
+    Prefer using multi-edit whenever having multiple conflicts in the same file.
     Before editing, you are required to call the read tool on the same file you intend to modify.
     This ensures you are editing against the most up-to-date file contents and that formatting (indentation, spacing, etc.) is preserved exactly.
     </resolution_format>
-
     <code_guidelines>
     - Don't add any comments or explanations to the code unless it was present in the existing code.
     - Make sure the code is valid. Don't assume the user has any dependencies without checking. If there are missing imports, add them.
@@ -82,7 +83,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     Date: ${formatDate(options.systemInfo.date)}
     Current working directory: ${options.systemInfo.workingDirectory}
     </system_information>
-    `;
+  `;
 
   return prompt;
 }

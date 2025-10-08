@@ -29,7 +29,7 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
   };
 
   const handleApply = (edit: FileEditOptions) => {
-    editFile(edit.path, edit.oldText, edit.newText, edit.replaceAll);
+    editFile(edit);
   };
 
   const handleReject = () => {
@@ -39,7 +39,7 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
 
   const handleApplyAll = () => {
     edits.forEach((edit) => {
-      editFile(edit.path, edit.oldText, edit.newText, edit.replaceAll);
+      editFile(edit);
     });
   };
 
