@@ -78,7 +78,7 @@ export function makeMultiEditTool(
       return null;
     },
     {
-      name: 'multi-edit',
+      name: 'multiedit',
       description: dedent`
         This is a tool for making multiple edits to a single file in one operation.
 
@@ -87,11 +87,11 @@ export function makeMultiEditTool(
         2. Verify the directory path is correct
 
         To make multiple file edits, provide the following:
-        1. relativePath: The relative path to the file to modify (must be absolute, not relative)
-        2. edits: An array of edit operations to perform, where each edit contains:
+        1. relativePath: The relative path to the file to modify
+        2. newEdits: An array of edit operations to perform, where each edit contains:
         - oldText: The text to replace
         - newText: The edited text to replace the oldText
-        - replace_all: Replace all occurences of oldText. This parameter is optional and defaults to false.
+        - replaceAll: Replace all occurences of oldText. This parameter is optional and defaults to false.
 
         IMPORTANT:
         - Prefer this tool over the edit tool when you need to make multiple edits to the same file
