@@ -1,17 +1,25 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import { defineConfig, globalIgnores } from 'eslint/config';
+import { defineConfig } from 'eslint/config';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import reactCompiler from 'eslint-plugin-react-compiler';
 
 export default defineConfig([
   {
-    files: ['**/*.{js,mjs,cjs,ts,mts,cts}'],
-    plugins: { js },
-    extends: ['js/recommended'],
+    files: ['**/*.{js,mjs,cjs,ts,mts,cts,tsx}'],
+    plugins: {
+      'react-compiler': reactCompiler,
+    },
     languageOptions: { globals: globals.browser },
+    rules: {
+      'react-compiler/react-compiler': 'error',
+    },
   },
-  globalIgnores(['dist/*']),
-  tseslint.configs.recommended,
+  {
+    ignores: ['dist/*'],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   prettierRecommended,
 ]);
