@@ -48,7 +48,7 @@ function isInProgress(event?: StreamEvent) {
 
   switch (event.type) {
     case 'message':
-      return true;
+      return false;
     case 'thinking':
       return !event.isComplete;
     case 'tool':
@@ -60,6 +60,7 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [status, setStatus] = useState<AgentStatus>('resolving');
   const [edits, setEdits] = useState<FileEditOptions[]>([]);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Set up callbacks
@@ -184,8 +185,8 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
               : e
           )
         );
-      } catch (error) {
-        console.error('Agent error:', error);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
         setStatus('complete');
       }
     };
@@ -250,13 +251,39 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
 
       {/* Review button when complete */}
       {status === 'complete' && edits.length > 0 && (
-        <Box justifyContent="center" alignItems="center">
+        <Box marginTop={1}>
           <ReviewButton onReview={handleReview} />
         </Box>
       )}
 
+      {/* Error message */}
+      {error && (
+        <Box
+          flexDirection="column"
+          borderStyle="round"
+          borderColor="red"
+          padding={1}
+          marginTop={1}
+        >
+          <Text color="red" bold>
+            ❌ Error occurred:
+          </Text>
+          <Text color="red">{error.message}</Text>
+          {error.stack && (
+            <Box flexDirection="column" marginTop={1}>
+              <Text color="gray" dimColor>
+                Stack trace:
+              </Text>
+              <Text color="gray" dimColor>
+                {error.stack}
+              </Text>
+            </Box>
+          )}
+        </Box>
+      )}
+
       {/* No edits message */}
-      {status === 'complete' && edits.length === 0 && (
+      {status === 'complete' && edits.length === 0 && !error && (
         <Text color="yellow" bold>
           No conflicts to resolve.
         </Text>
