@@ -44,6 +44,7 @@ export interface ConflictAgentCallbacks {
     toolName: string;
     output: unknown;
     callId?: string;
+    isError?: boolean;
   }) => void;
 }
 
@@ -215,11 +216,17 @@ export class ConflictResolutionAgent {
     const output =
       typeof content === 'string' ? this.tryParseJson(content) : content;
 
+    // Check if the tool call resulted in an error
+    // LangChain ToolMessages have a status field that can be 'error'
+    const isError =
+      (message as unknown as { status?: string }).status === 'error';
+
     if (this.callbacks.onToolEnd) {
       const info: {
         toolName: string;
         output: unknown;
         callId?: string;
+        isError?: boolean;
       } = {
         toolName,
         output,
@@ -227,6 +234,10 @@ export class ConflictResolutionAgent {
 
       if (callId !== undefined) {
         info.callId = callId;
+      }
+
+      if (isError) {
+        info.isError = true;
       }
 
       this.callbacks.onToolEnd(info);

@@ -36,10 +36,25 @@ type StreamEvent =
       name: string;
       input: unknown;
       output: unknown | null;
-      status: 'running' | 'complete';
+      status: 'running' | 'complete' | 'failed';
     };
 
 type AgentStatus = 'resolving' | 'complete' | 'reviewing';
+
+function isInProgress(event?: StreamEvent) {
+  if (!event) {
+    return false;
+  }
+
+  switch (event.type) {
+    case 'message':
+      return true;
+    case 'thinking':
+      return !event.isComplete;
+    case 'tool':
+      return event.status === 'running';
+  }
+}
 
 export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
@@ -141,10 +156,13 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
 
       onToolEnd: (info) => {
         const callId = info.callId || `${info.toolName}-${Date.now()}`;
+        const status = info.isError
+          ? ('failed' as const)
+          : ('complete' as const);
         setEvents((prev) =>
           prev.map((e) =>
             e.type === 'tool' && e.callId === callId
-              ? { ...e, output: info.output, status: 'complete' as const }
+              ? { ...e, output: info.output, status }
               : e
           )
         );
@@ -224,7 +242,7 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
       })}
 
       {/* Progress indicator */}
-      {status === 'resolving' && (
+      {status === 'resolving' && !isInProgress(events.at(-1)) && (
         <Box>
           <ProgressIndicator status="Resolving..." />
         </Box>

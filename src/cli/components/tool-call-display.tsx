@@ -18,7 +18,7 @@ export interface ToolCallDisplayProps {
   toolName: string;
   input: unknown;
   output: unknown;
-  status: 'running' | 'complete';
+  status: 'running' | 'complete' | 'failed';
 }
 
 type ToolInput =
@@ -149,6 +149,8 @@ export function ToolCallDisplay({
         <Text color="yellow">
           <Spinner type="dots" />
         </Text>
+      ) : status === 'failed' ? (
+        <Text color="red">✗</Text>
       ) : (
         <Text color="green">✓</Text>
       )}
