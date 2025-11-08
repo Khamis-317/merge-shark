@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { globUtil } from '../utils/glob-files.js';
 import { dedent } from '../utils/dedent.js';
 
+export interface GlobToolInput {
+  pattern: string;
+  ignoredPatterns?: string[];
+}
+
 export function makeGlobTool(repoPath: string) {
   const globSchema = z.object({
     pattern: z.string().optional(),

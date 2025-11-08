@@ -6,6 +6,10 @@ import {
   DEFAULT_MAX_COMMITS_PER_FILE,
 } from '../utils/git-utils.js';
 
+export interface GetLastMergeCommitsToolInput {
+  limit?: number;
+}
+
 export function makeGetLastMergeCommitsTool(repoPath: string) {
   const lastMergeCommitsSchema = z.object({
     limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),

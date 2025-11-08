@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { gitDiff } from '../utils/git-utils.js';
 
+export interface GitDiffToolInput {
+  from: string;
+  to: string;
+  relativeFilePath: string;
+}
+
 export function makeGitDiffTool(repoPath: string) {
   const diffSchema = z.object({
     from: z.string(),

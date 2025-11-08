@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { gitBlame } from '../utils/git-utils.js';
 
+export interface GitBlameToolInput {
+  relativeFilePath: string;
+  startLine: number;
+  endLine: number;
+}
+
 export function makeGitBlameTool(repoPath: string) {
   const blameSchema = z.object({
     relativeFilePath: z.string(),

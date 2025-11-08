@@ -4,6 +4,13 @@ import { ripgrep } from '../utils/rip-grep.js';
 import path from 'path';
 import { dedent } from '../utils/dedent.js';
 
+export interface RipgrepToolInput {
+  searchPath: string;
+  pattern: string;
+  caseSensitive?: boolean;
+  ignored?: string[];
+}
+
 export function makeRipgrepTool(repoPath: string) {
   const ripgrepSchema = z.object({
     searchPath: z.string(),

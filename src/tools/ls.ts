@@ -4,6 +4,10 @@ import { listFiles } from '../utils/list-files.js';
 import path from 'path';
 import { dedent } from '../utils/dedent.js';
 
+export interface LsToolInput {
+  directoryPath: string;
+}
+
 export function makeLsTool(repoPath: string) {
   const lsSchema = z.object({
     directoryPath: z.string(),

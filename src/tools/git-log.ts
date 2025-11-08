@@ -6,6 +6,12 @@ import {
   DEFAULT_MAX_COMMITS_PER_FILE,
 } from '../utils/git-utils.js';
 
+export interface GitLogToolInput {
+  relativeFilePath: string;
+  branchRef?: string;
+  limit?: number;
+}
+
 export function makeGitLogTool(repoPath: string) {
   const recentCommitsSchema = z.object({
     relativeFilePath: z.string(),

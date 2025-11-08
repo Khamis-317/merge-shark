@@ -10,6 +10,11 @@ import {
 import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
 
+export interface MultiEditToolInput {
+  relativePath: string;
+  newEdits: EditOptions[];
+}
+
 export function makeMultiEditTool(
   repoPath: string,
   edits: FileEditOptions[],

@@ -9,6 +9,13 @@ import {
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
 
+export interface EditToolInput {
+  relativePath: string;
+  oldText: string;
+  newText: string;
+  replaceAll?: boolean;
+}
+
 export function makeEditTool(
   repoPath: string,
   edits: FileEditOptions[],

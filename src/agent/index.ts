@@ -32,11 +32,9 @@ export type StreamTextChunk = {
   text: string;
 };
 
-export type ConflictAgentCallbacks = {
+export interface ConflictAgentCallbacks {
   onMessageChunk?: (chunk: StreamTextChunk) => void;
   onReasoningChunk?: (chunk: StreamTextChunk) => void;
-  /** @deprecated Use onReasoningChunk instead. */
-  onThinking?: (chunk: string) => void;
   onToolStart?: (info: {
     toolName: string;
     input: unknown;
@@ -47,7 +45,7 @@ export type ConflictAgentCallbacks = {
     output: unknown;
     callId?: string;
   }) => void;
-};
+}
 
 export class ConflictResolutionAgent {
   private callbacks: ConflictAgentCallbacks;
@@ -97,8 +95,7 @@ export class ConflictResolutionAgent {
 
     const llm = new ChatGoogle({
       model: 'gemini-2.5-pro',
-      // verbose: true,
-      thinkingBudget: 24576, // Maximum thinking budget for Gemini 2.5 Flash
+      thinkingBudget: 12288, // Maximum thinking budget for Gemini 2.5 Flash
     });
 
     const tools: StructuredToolInterface[] = [
@@ -297,10 +294,6 @@ export class ConflictResolutionAgent {
 
     if (this.callbacks.onReasoningChunk) {
       this.callbacks.onReasoningChunk(chunk);
-    }
-
-    if (this.callbacks.onThinking) {
-      this.callbacks.onThinking(text);
     }
   }
 

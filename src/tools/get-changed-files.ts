@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { getChangedFilesInCommit } from '../utils/git-utils.js';
 
+export interface GetChangedFilesToolInput {
+  commitHash: string;
+}
+
 export function makeGetChangedFilesTool(repoPath: string) {
   const changedFilesSchema = z.object({
     commitHash: z.string(),

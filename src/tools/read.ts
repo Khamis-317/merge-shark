@@ -5,6 +5,12 @@ import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
 import { dedent } from '../utils/dedent.js';
 
+export interface ReadToolInput {
+  relativePath: string;
+  limit?: number;
+  offset?: number;
+}
+
 export function makeReadTool(repoPath: string, context: ToolContext) {
   const readSchema = z.object({
     relativePath: z.string(),
