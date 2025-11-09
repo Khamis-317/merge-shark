@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "babel src --out-dir dist --extensions '.ts,.tsx' --source-maps && tsc --emitDeclarationOnly",
+    "build": "babel src --out-dir dist --extensions '.ts,.tsx' --source-maps",
     "start": "node --env-file=.env dist/index.js",
     "dev": "npm run build && npm run start",
     "test": "vitest",
