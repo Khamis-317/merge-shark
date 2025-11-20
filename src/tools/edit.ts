@@ -9,37 +9,22 @@ import {
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
 
-export interface EditToolInput {
-  relativePath: string;
-  oldText: string;
-  newText: string;
-  replaceAll?: boolean;
-}
+const editInputSchema = z.object({
+  relativePath: z.string(),
+  oldText: z.string(),
+  newText: z.string(),
+  replaceAll: z.boolean().optional().default(false),
+});
+
+export type EditToolInput = z.infer<typeof editInputSchema>;
 
 export function makeEditTool(
   repoPath: string,
   edits: FileEditOptions[],
   context: ToolContext
 ) {
-  const editSchema = z.object({
-    relativePath: z.string(),
-    oldText: z.string(),
-    newText: z.string(),
-    replaceAll: z.boolean().optional().default(false),
-  });
-
   return tool(
-    async ({
-      relativePath,
-      oldText,
-      newText,
-      replaceAll,
-    }: {
-      relativePath: string;
-      oldText: string;
-      newText: string;
-      replaceAll: boolean;
-    }) => {
+    async ({ relativePath, oldText, newText, replaceAll }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
       if (context.lastReadPath !== absolutePath) {
@@ -73,7 +58,7 @@ export function makeEditTool(
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
         The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
         `,
-      schema: editSchema,
+      schema: editInputSchema,
     }
   );
 }

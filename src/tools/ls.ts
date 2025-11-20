@@ -4,17 +4,15 @@ import { listFiles } from '../utils/list-files.js';
 import path from 'path';
 import { dedent } from '../utils/dedent.js';
 
-export interface LsToolInput {
-  directoryPath: string;
-}
+const lsInputSchema = z.object({
+  directoryPath: z.string(),
+});
+
+export type LsToolInput = z.infer<typeof lsInputSchema>;
 
 export function makeLsTool(repoPath: string) {
-  const lsSchema = z.object({
-    directoryPath: z.string(),
-  });
-
   return tool(
-    async ({ directoryPath }: { directoryPath: string }) => {
+    async ({ directoryPath }) => {
       const absolutePath = path.resolve(repoPath, directoryPath);
       const listedFiles = await listFiles(absolutePath);
       return listedFiles.map((file) => file).join('\n');
@@ -28,7 +26,7 @@ export function makeLsTool(repoPath: string) {
         Sub-Directories will have a trailing slash (/).
         Provide a relative path to the directory you want to list (e.g., "src" or "src/tools").
         `,
-      schema: lsSchema,
+      schema: lsInputSchema,
     }
   );
 }

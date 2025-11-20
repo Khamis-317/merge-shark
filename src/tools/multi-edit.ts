@@ -4,50 +4,39 @@ import { dedent } from '../utils/dedent.js';
 import {
   checkEditValidity,
   getFileContent,
-  type EditOptions,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
 
-export interface MultiEditToolInput {
-  relativePath: string;
-  newEdits: EditOptions[];
-}
+const multiEditInputSchema = z.object({
+  relativePath: z.string().describe('The relative path to the file to edit'),
+  newEdits: z
+    .array(
+      z
+        .object({
+          oldText: z.string().describe('The text to be replaced'),
+          newText: z.string().describe('The new text to replace the old text'),
+          replaceAll: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe('Whether to replace all occurrences of the old text'),
+        })
+        .describe('The edit operation to be performed')
+    )
+    .describe('The list of edits to perform on the file'),
+});
+
+export type MultiEditToolInput = z.infer<typeof multiEditInputSchema>;
 
 export function makeMultiEditTool(
   repoPath: string,
   edits: FileEditOptions[],
   context: ToolContext
 ) {
-  const multiEditSchema = z.object({
-    relativePath: z.string().describe('The relative path to the file to edit'),
-    newEdits: z
-      .array(
-        z
-          .object({
-            oldText: z.string().describe('The text to be replaced'),
-            newText: z
-              .string()
-              .describe('The new text to replace the old text'),
-            replaceAll: z
-              .boolean()
-              .optional()
-              .default(false)
-              .describe('Whether to replace all occurrences of the old text'),
-          })
-          .describe('The edit operation to be performed')
-      )
-      .describe('The list of edits to perform on the file'),
-  });
   return tool(
-    async ({
-      relativePath,
-      newEdits,
-    }: {
-      relativePath: string;
-      newEdits: EditOptions[];
-    }) => {
+    async ({ relativePath, newEdits }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
       if (context.lastReadPath !== absolutePath) {
@@ -104,7 +93,7 @@ export function makeMultiEditTool(
         - Each edit operates on the result of the previous edit
         - If any edit fails, none will be applied
         `,
-      schema: multiEditSchema,
+      schema: multiEditInputSchema,
     }
   );
 }

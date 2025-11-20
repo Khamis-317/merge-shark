@@ -3,29 +3,17 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { gitBlame } from '../utils/git-utils.js';
 
-export interface GitBlameToolInput {
-  relativeFilePath: string;
-  startLine: number;
-  endLine: number;
-}
+const gitBlameInputSchema = z.object({
+  relativeFilePath: z.string(),
+  startLine: z.number(),
+  endLine: z.number(),
+});
+
+export type GitBlameToolInput = z.infer<typeof gitBlameInputSchema>;
 
 export function makeGitBlameTool(repoPath: string) {
-  const blameSchema = z.object({
-    relativeFilePath: z.string(),
-    startLine: z.number(),
-    endLine: z.number(),
-  });
-
   return tool(
-    async ({
-      relativeFilePath,
-      startLine,
-      endLine,
-    }: {
-      relativeFilePath: string;
-      startLine: number;
-      endLine: number;
-    }) => {
+    async ({ relativeFilePath, startLine, endLine }) => {
       const blameOutput = await gitBlame(
         repoPath,
         relativeFilePath,
@@ -55,7 +43,7 @@ export function makeGitBlameTool(repoPath: string) {
         - To understand the history of changes for a particular code section
         - To track down the author of specific code changes
         `,
-      schema: blameSchema,
+      schema: gitBlameInputSchema,
     }
   );
 }

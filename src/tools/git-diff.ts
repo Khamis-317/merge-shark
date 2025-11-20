@@ -3,29 +3,17 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { gitDiff } from '../utils/git-utils.js';
 
-export interface GitDiffToolInput {
-  from: string;
-  to: string;
-  relativeFilePath: string;
-}
+const gitDiffInputSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  relativeFilePath: z.string(),
+});
+
+export type GitDiffToolInput = z.infer<typeof gitDiffInputSchema>;
 
 export function makeGitDiffTool(repoPath: string) {
-  const diffSchema = z.object({
-    from: z.string(),
-    to: z.string(),
-    relativeFilePath: z.string(),
-  });
-
   return tool(
-    async ({
-      from,
-      to,
-      relativeFilePath,
-    }: {
-      from: string;
-      to: string;
-      relativeFilePath: string;
-    }) => {
+    async ({ from, to, relativeFilePath }) => {
       const diffOutput = await gitDiff(repoPath, from, to, relativeFilePath);
       return diffOutput;
     },
@@ -47,7 +35,7 @@ export function makeGitDiffTool(repoPath: string) {
         - Commit hashes can be obtained from "git_log", "get_last_merge_commits", and "git_blame"
         - File paths can be obtained from "get_changed_files_in_commit"
         `,
-      schema: diffSchema,
+      schema: gitDiffInputSchema,
     }
   );
 }

@@ -5,28 +5,20 @@ import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
 import { dedent } from '../utils/dedent.js';
 
-export interface ReadToolInput {
-  relativePath: string;
-  limit?: number;
-  offset?: number;
-}
+const readInputSchema = z.object({
+  relativePath: z.string(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+
+export type ReadToolInput = z.infer<typeof readInputSchema>;
 
 export function makeReadTool(repoPath: string, context: ToolContext) {
-  const readSchema = z.object({
-    relativePath: z.string(),
-    limit: z.number().optional(),
-    offset: z.number().optional(),
-  });
-
   return tool(
     async ({
       relativePath,
       limit = DEFAULT_FILE_READ_LINES_LIMIT,
       offset = 0,
-    }: {
-      relativePath: string;
-      limit: number;
-      offset: number;
     }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
@@ -48,7 +40,7 @@ export function makeReadTool(repoPath: string, context: ToolContext) {
         but it's recommended to read the whole file by not providing these parameters.
         You need to use other tools with this tool (if they are available):
         `,
-      schema: readSchema,
+      schema: readInputSchema,
     }
   );
 }
