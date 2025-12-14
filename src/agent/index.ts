@@ -19,17 +19,32 @@ import {
   formatMergeInfo,
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
-import { AIMessageChunk, ToolMessage } from '@langchain/core/messages';
+import {
+  AIMessageChunk,
+  BaseMessage,
+  ToolMessage,
+} from '@langchain/core/messages';
 import type { ToolCall } from '@langchain/core/messages/tool';
+import { z } from 'zod';
 
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
+import { appendFile } from 'node:fs/promises';
+import type {
+  BinaryOperatorAggregate,
+  Messages,
+  UpdateType,
+} from '@langchain/langgraph';
 
 export type StreamTextChunk = {
   id: string;
   text: string;
 };
+
+function chunkLog(chunk: unknown) {
+  appendFile('output.log', JSON.stringify(chunk, null, 2) + '\n');
+}
 
 export interface ConflictAgentCallbacks {
   onMessageChunk?: (chunk: StreamTextChunk) => void;
@@ -88,7 +103,7 @@ export class ConflictResolutionAgent {
     }
 
     const llm = new ChatOpenAI({
-      model: 'moonshotai/kimi-k2-thinking',
+      model: 'qwen/qwen3-coder',
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
       },
@@ -141,20 +156,67 @@ export class ConflictResolutionAgent {
 
     const stream = await agent.stream(
       { messages },
-      { streamMode: 'messages', recursionLimit: 100 }
+      { streamMode: ['messages', 'updates'], recursionLimit: 100 }
     );
 
-    for await (const chunk of stream) {
-      this.handleStreamEvent(chunk);
+    for await (const [mode, chunk] of stream) {
+      if (mode === 'updates') {
+        this.handleStreamUpdate(chunk);
+      } else {
+        this.handleStreamMessage(chunk);
+      }
     }
 
     return this.edits;
   }
 
-  private handleStreamEvent(event: unknown): void {
+  private handleStreamUpdate(
+    chunk: Record<
+      string | number | symbol,
+      UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
+    >
+  ): void {
+    if (!('agent' in chunk)) {
+      return;
+    }
+    const agentUpdate = chunk['agent'];
+
+    const schema = z.array(
+      z.object({
+        kwargs: z.object({
+          tool_calls: z
+            .array(
+              z.object({
+                name: z.string(),
+                args: z.record(z.any()),
+                id: z.string(),
+              })
+            )
+            .optional()
+            .default([]),
+        }),
+      })
+    );
+
+    try {
+      const recordified = JSON.parse(JSON.stringify(agentUpdate.messages));
+      const messages = schema.parse(recordified);
+      for (const message of messages) {
+        const toolCalls = message.kwargs.tool_calls;
+
+        this.handleToolCalls(toolCalls);
+      }
+    } catch (e) {
+      chunkLog(
+        `Failed to parse agent messages: ${e} ${JSON.stringify(agentUpdate.messages, null, 2)}`
+      );
+    }
+  }
+
+  private handleStreamMessage(event: unknown): void {
     if (Array.isArray(event)) {
       for (const item of event) {
-        this.handleStreamEvent(item);
+        this.handleStreamMessage(item);
       }
       return;
     }
@@ -203,10 +265,6 @@ export class ConflictResolutionAgent {
       if (text) {
         this.emitMessageChunk(messageId, text);
       }
-    }
-
-    if (chunk.tool_calls) {
-      this.handleToolCalls(chunk.tool_calls);
     }
   }
 
