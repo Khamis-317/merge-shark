@@ -2,6 +2,7 @@ import { tool } from '@langchain/core/tools';
 import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
 import path from 'path';
+import fs from 'node:fs/promises';
 import type { ToolContext } from '../utils/tool-context.js';
 import { dedent } from '../utils/dedent.js';
 
@@ -24,7 +25,9 @@ export function makeReadTool(repoPath: string, context: ToolContext) {
 
       const data = await readFile(absolutePath, { limit, offset });
 
-      context.lastReadPath = absolutePath;
+      // Track the file's modification time when it was read
+      const stats = await fs.stat(absolutePath);
+      context.readFiles.set(absolutePath, stats.mtime);
 
       return data;
     },

@@ -5,6 +5,7 @@ import path from 'path';
 import {
   checkEditValidity,
   getFileContent,
+  validateFileReadStatus,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
@@ -27,11 +28,8 @@ export function makeEditTool(
     async ({ relativePath, oldText, newText, replaceAll }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
-      if (context.lastReadPath !== absolutePath) {
-        throw new Error(
-          `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
-        );
-      }
+      // Validate that the file has been read and hasn't changed since
+      await validateFileReadStatus(absolutePath, context);
 
       const fileContent = await getFileContent(absolutePath);
 

@@ -4,6 +4,7 @@ import { dedent } from '../utils/dedent.js';
 import {
   checkEditValidity,
   getFileContent,
+  validateFileReadStatus,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import path from 'path';
@@ -39,11 +40,8 @@ export function makeMultiEditTool(
     async ({ relativePath, newEdits }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
-      if (context.lastReadPath !== absolutePath) {
-        throw new Error(
-          `Invalid usage: You must call 'read' on ${relativePath} immediately before editing it.`
-        );
-      }
+      // Validate that the file has been read and hasn't changed since
+      await validateFileReadStatus(absolutePath, context);
 
       let fileContent = await getFileContent(absolutePath);
       const validEdits: FileEditOptions[] = [];

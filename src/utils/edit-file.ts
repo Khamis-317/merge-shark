@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import type { ToolContext } from './tool-context.js';
 
 export interface EditOptions {
   oldText: string;
@@ -8,6 +9,36 @@ export interface EditOptions {
 
 export interface FileEditOptions extends EditOptions {
   path: string;
+}
+
+/**
+ * Validates that a file has been read and hasn't been modified since the last read.
+ *
+ * @param path The absolute path of the file to validate.
+ * @param context The tool context containing read file information.
+ * @throws Error if the file hasn't been read or has been modified since the last read.
+ */
+export async function validateFileReadStatus(
+  path: string,
+  context: ToolContext
+): Promise<void> {
+  const lastReadTime = context.readFiles.get(path);
+
+  if (!lastReadTime) {
+    throw new Error(
+      `Invalid usage: You must call 'read' on this file before editing it.`
+    );
+  }
+
+  // Check if the file has been modified since it was last read
+  const stats = await fs.stat(path);
+  const currentModTime = stats.mtime;
+
+  if (currentModTime > lastReadTime) {
+    throw new Error(
+      `Invalid usage: The file has been modified since you last read it. Please call 'read' again before editing.`
+    );
+  }
 }
 
 /**

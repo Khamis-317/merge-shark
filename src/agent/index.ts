@@ -20,6 +20,7 @@ import {
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
 import { AIMessageChunk, ToolMessage } from '@langchain/core/messages';
+import type { ToolCall } from '@langchain/core/messages/tool';
 
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { ToolContext } from '../utils/tool-context.js';
@@ -36,7 +37,7 @@ export interface ConflictAgentCallbacks {
   onToolStart?: (info: {
     toolName: string;
     input: unknown;
-    callId?: string;
+    callId?: string | undefined;
   }) => void;
   onToolEnd?: (info: {
     toolName: string;
@@ -68,7 +69,9 @@ export class ConflictResolutionAgent {
 
   async run(): Promise<FileEditOptions[]> {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
-    const context: ToolContext = { lastReadPath: null };
+    const context: ToolContext = {
+      readFiles: new Map(),
+    };
     this.emittedToolCallIds.clear();
 
     // Try to get merge information (may fail in case of rebase)
@@ -202,7 +205,9 @@ export class ConflictResolutionAgent {
       }
     }
 
-    this.handleToolCalls(chunk.tool_calls);
+    if (chunk.tool_calls) {
+      this.handleToolCalls(chunk.tool_calls);
+    }
   }
 
   private handleToolMessage(message: ToolMessage): void {
@@ -244,48 +249,22 @@ export class ConflictResolutionAgent {
     }
   }
 
-  private handleToolCalls(toolCalls: unknown): void {
-    if (!Array.isArray(toolCalls)) {
-      return;
-    }
-
+  private handleToolCalls(toolCalls: ToolCall[]): void {
     for (const call of toolCalls) {
-      if (!call || typeof call !== 'object') {
+      if (call.id && this.emittedToolCallIds.has(call.id)) {
         continue;
       }
 
-      const { id, name, args } = call as {
-        id?: unknown;
-        name?: unknown;
-        args?: unknown;
-      };
-
-      if (typeof name !== 'string') {
-        continue;
-      }
-
-      const callId = typeof id === 'string' ? id : undefined;
-      if (callId && this.emittedToolCallIds.has(callId)) {
-        continue;
-      }
-
-      if (callId) {
-        this.emittedToolCallIds.add(callId);
+      if (call.id) {
+        this.emittedToolCallIds.add(call.id);
       }
 
       if (this.callbacks.onToolStart) {
-        const info: {
-          toolName: string;
-          input: unknown;
-          callId?: string;
-        } = {
-          toolName: name,
-          input: args,
+        const info = {
+          toolName: call.name,
+          input: call.args,
+          callId: call.id,
         };
-
-        if (callId !== undefined) {
-          info.callId = callId;
-        }
 
         this.callbacks.onToolStart(info);
       }
