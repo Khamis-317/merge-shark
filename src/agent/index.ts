@@ -1,8 +1,6 @@
-import { ChatGoogle } from '@langchain/google-gauth';
-import path from 'node:path';
+import { ChatOpenAI } from '@langchain/openai';
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
-import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { makeEditTool } from '../tools/edit.js';
@@ -70,14 +68,6 @@ export class ConflictResolutionAgent {
 
   async run(): Promise<FileEditOptions[]> {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
-    const conflictingFilesContent = await Promise.all(
-      conflictingFiles.map(async (file) => {
-        return {
-          name: file,
-          content: await readFile(path.join(this.repoPath, file)),
-        };
-      })
-    );
     const context: ToolContext = { lastReadPath: null };
     this.emittedToolCallIds.clear();
 
@@ -94,9 +84,11 @@ export class ConflictResolutionAgent {
       );
     }
 
-    const llm = new ChatGoogle({
-      model: 'gemini-2.5-pro',
-      thinkingBudget: 12288, // Maximum thinking budget for Gemini 2.5 Flash
+    const llm = new ChatOpenAI({
+      model: 'moonshotai/kimi-k2-thinking',
+      configuration: {
+        baseURL: 'https://openrouter.ai/api/v1',
+      },
     });
 
     const tools: StructuredToolInterface[] = [
@@ -129,7 +121,8 @@ export class ConflictResolutionAgent {
 
     const userPrompt = dedent`
       Resolve the conflicts in the following files:
-      ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
+      
+      ${conflictingFiles.map((file) => `- ${file}`).join('\n')}
       `;
 
     const messages = [
@@ -143,7 +136,10 @@ export class ConflictResolutionAgent {
       },
     ];
 
-    const stream = await agent.stream({ messages }, { streamMode: 'messages' });
+    const stream = await agent.stream(
+      { messages },
+      { streamMode: 'messages', recursionLimit: 100 }
+    );
 
     for await (const chunk of stream) {
       this.handleStreamEvent(chunk);

@@ -39,6 +39,7 @@
     "@langchain/core": "^0.3.75",
     "@langchain/google-gauth": "^0.2.18",
     "@langchain/langgraph": "^0.4.9",
+    "@langchain/openai": "^0.6.16",
     "@types/marked-terminal": "^6.1.1",
     "@vscode/ripgrep": "^1.15.14",
     "chalk": "^5.6.2",
