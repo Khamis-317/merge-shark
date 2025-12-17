@@ -6,11 +6,12 @@ import { editFile, type FileEditOptions } from '../../utils/edit-file.js';
 export interface SharkAppProps {
   edits: FileEditOptions[];
   repoPath: string;
+  onBack: () => void;
 }
 
 type EditStatus = 'pending' | 'accepted' | 'rejected';
 
-export function SharkApp({ edits, repoPath }: SharkAppProps) {
+export function SharkApp({ edits, repoPath, onBack }: SharkAppProps) {
   const [activeEditIndex, setActiveEditIndex] = useState(0);
   const [editStatuses, setEditStatuses] = useState<EditStatus[]>(
     edits.map(() => 'pending')
@@ -31,7 +32,7 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
 
   const handlePrevious = () => {
     if (activeEditIndex === 0) {
-      return beep();
+      return onBack();
     }
 
     return setActiveEditIndex((current) => current - 1);

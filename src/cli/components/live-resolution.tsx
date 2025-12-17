@@ -20,8 +20,14 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
     setStatus('reviewing');
   };
 
+  const handleBackToLive = () => {
+    setStatus('complete');
+  };
+
   if (status === 'reviewing') {
-    return <SharkApp edits={edits} repoPath={repoPath} />;
+    return (
+      <SharkApp edits={edits} repoPath={repoPath} onBack={handleBackToLive} />
+    );
   }
 
   return (
