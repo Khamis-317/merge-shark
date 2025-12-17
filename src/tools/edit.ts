@@ -50,7 +50,6 @@ export function makeEditTool(
       name: 'edit',
       description: dedent`
         Performs exact string replacements in existing files.
-        You MUST use the 'read' tool BEFORE calling this tool.
         Always preserve the exact formatting (indentation, tabs, spaces) of the text you replace.
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
