@@ -1,5 +1,6 @@
 import { start } from './cli/index.js';
 import { parseArgs } from 'node:util';
+import { models } from './models/index.js';
 
 const args = parseArgs({
   options: {
@@ -8,8 +9,16 @@ const args = parseArgs({
       type: 'string',
       short: 'r',
     },
+    model: {
+      default: 'gemini-3-flash',
+      type: 'string',
+      short: 'm',
+    },
   },
 });
 
+const model = models[args.values.model] ?? models['gemini-3-flash']!;
+
 const repoPath = args.values.repo;
-await start(repoPath);
+
+await start(repoPath, model);

@@ -62,6 +62,9 @@ export function createSystemPrompt(options: SystemPromptOptions) {
       - CRITICAL: If a config file extends another config file relevant to the conflict, read the extended config file.
     </resolution_guidelines>
     <resolution_format>
+
+    At each step, output a message to let the user know what you are doing.
+
     Once you figure out the resolution for each conflict, you MUST apply file edits by calling one of the following tools:
     - **edit** tool to perform a single edit in a file.
     - **multiedit** tool to perform multiple edits in a file within one operation.

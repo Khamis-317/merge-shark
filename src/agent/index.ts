@@ -1,4 +1,3 @@
-import { ChatOpenAI } from '@langchain/openai';
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
@@ -22,6 +21,7 @@ import { dedent } from '../utils/dedent.js';
 import {
   AIMessageChunk,
   BaseMessage,
+  ContentBlock,
   ToolMessage,
 } from '@langchain/core/messages';
 import type { ToolCall } from '@langchain/core/messages/tool';
@@ -36,6 +36,7 @@ import type {
   Messages,
   UpdateType,
 } from '@langchain/langgraph';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
 
 export type StreamTextChunk = {
   id: string;
@@ -69,6 +70,7 @@ export class ConflictResolutionAgent {
 
   constructor(
     private repoPath: string,
+    private llm: LanguageModelLike,
     callbacks: ConflictAgentCallbacks = {}
   ) {
     this.callbacks = callbacks;
@@ -102,13 +104,6 @@ export class ConflictResolutionAgent {
       );
     }
 
-    const llm = new ChatOpenAI({
-      model: 'qwen/qwen3-coder',
-      configuration: {
-        baseURL: 'https://openrouter.ai/api/v1',
-      },
-    });
-
     const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
@@ -124,7 +119,7 @@ export class ConflictResolutionAgent {
     ];
 
     const agent = createReactAgent({
-      llm,
+      llm: this.llm,
       tools,
     });
 
@@ -160,6 +155,7 @@ export class ConflictResolutionAgent {
     );
 
     for await (const [mode, chunk] of stream) {
+      chunkLog({ mode, chunk });
       if (mode === 'updates') {
         this.handleStreamUpdate(chunk);
       } else {
@@ -237,27 +233,15 @@ export class ConflictResolutionAgent {
 
     if (Array.isArray(content)) {
       for (const part of content) {
-        if (!part || typeof part !== 'object') {
-          continue;
-        }
-
-        const partType = (part as { type?: unknown }).type;
-
-        if (
-          partType === 'reasoning' &&
-          typeof (part as { reasoning?: unknown }).reasoning === 'string'
-        ) {
+        if (part.type === 'reasoning') {
           this.emitReasoningChunk(
             messageId,
-            (part as { reasoning: string }).reasoning
+            (part as ContentBlock.Reasoning).reasoning
           );
         }
 
-        if (
-          partType === 'text' &&
-          typeof (part as { text?: unknown }).text === 'string'
-        ) {
-          this.emitMessageChunk(messageId, (part as { text: string }).text);
+        if (part.type === 'text') {
+          this.emitMessageChunk(messageId, (part as ContentBlock.Text).text);
         }
       }
     } else {

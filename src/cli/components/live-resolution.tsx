@@ -1,4 +1,4 @@
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { ConflictResolutionAgent } from '../../agent/index.js';
 import { SharkApp } from './shark-app.js';
 import { ReviewButton } from './review-button.js';
@@ -11,9 +11,14 @@ import { ErrorDisplay } from './live-resolution/error-display.js';
 export interface LiveResolutionProps {
   agent: ConflictResolutionAgent;
   repoPath: string;
+  model: string;
 }
 
-export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
+export function LiveResolution({
+  agent,
+  repoPath,
+  model,
+}: LiveResolutionProps) {
   const { events, status, setStatus, edits, error } = useAgentResolution(agent);
 
   const handleReview = () => {
@@ -33,6 +38,7 @@ export function LiveResolution({ agent, repoPath }: LiveResolutionProps) {
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">
       <Header />
+      <Text color="blue">{model}</Text>
 
       {/* Render events in order */}
       <EventList events={events} />
