@@ -133,28 +133,37 @@ function formatToolSummary(toolName: string, input: unknown): string {
 export function ToolCallDisplay({
   toolName,
   input,
+  output,
   status,
 }: ToolCallDisplayProps) {
   const summary = formatToolSummary(toolName, input);
 
   return (
-    <Box
-      borderStyle="round"
-      borderColor="gray"
-      paddingX={1}
-      flexDirection="row"
-      gap={1}
-    >
-      {status === 'running' ? (
-        <Text color="yellow">
-          <Spinner type="dots" />
-        </Text>
-      ) : status === 'failed' ? (
-        <Text color="red">✗</Text>
-      ) : (
-        <Text color="green">✓</Text>
+    <Box flexDirection="column" marginBottom={status === 'failed' ? 1 : 0}>
+      <Box
+        borderStyle="round"
+        borderColor={status === 'failed' ? 'red' : 'gray'}
+        paddingX={1}
+        flexDirection="row"
+        gap={1}
+      >
+        {status === 'running' ? (
+          <Text color="yellow">
+            <Spinner type="dots" />
+          </Text>
+        ) : status === 'failed' ? (
+          <Text color="red">✗</Text>
+        ) : (
+          <Text color="green">✓</Text>
+        )}
+        <Text>{summary}</Text>
+      </Box>
+
+      {status === 'failed' && !!output && (
+        <Box paddingX={2}>
+          <Text color="red">{output.toString()}</Text>
+        </Box>
       )}
-      <Text>{summary}</Text>
     </Box>
   );
 }
