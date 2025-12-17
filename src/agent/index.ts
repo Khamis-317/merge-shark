@@ -151,7 +151,7 @@ export class ConflictResolutionAgent {
 
     const stream = await agent.stream(
       { messages },
-      { streamMode: ['messages', 'updates'], recursionLimit: 100 }
+      { streamMode: ['messages', 'updates'], recursionLimit: 500 }
     );
 
     for await (const [mode, chunk] of stream) {
@@ -340,7 +340,7 @@ export class ConflictResolutionAgent {
       return null;
     }
 
-    return value.trim().length > 0 ? value : null;
+    return value;
   }
 
   private extractContentString(content: unknown): string | null {
