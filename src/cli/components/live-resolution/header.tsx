@@ -4,7 +4,7 @@ import Gradient from 'ink-gradient';
 export function Header() {
   return (
     <Gradient name="cristal">
-      <BigText text="Shark" font="block" />
+      <BigText text="Shark" font="block" space={false} />
     </Gradient>
   );
 }

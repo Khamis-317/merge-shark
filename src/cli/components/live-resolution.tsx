@@ -37,8 +37,10 @@ export function LiveResolution({
 
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">
-      <Header />
-      <Text color="blue">{model}</Text>
+      <Box flexDirection="column" alignItems="center" marginBottom={1}>
+        <Header />
+        <Text color="blue">{model}</Text>
+      </Box>
 
       {/* Render events in order */}
       <EventList events={events} />
