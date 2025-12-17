@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/index.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
 
+export type ToolState =
+  | { status: 'running' | 'complete' | 'failed' }
+  | { status: 'awaiting-approval'; edit: FileEditOptions };
+
 // Event types for the unified stream
 export type StreamEvent =
   | {
@@ -22,16 +26,24 @@ export type StreamEvent =
       name: string;
       input: unknown;
       output: unknown | null;
-      status: 'running' | 'complete' | 'failed';
+      state: ToolState;
     };
 
-export type AgentStatus = 'resolving' | 'complete' | 'reviewing';
+export type AgentStatus =
+  | 'resolving'
+  | 'complete'
+  | 'reviewing'
+  | 'awaiting-approval';
 
 export function useAgentResolution(agent: ConflictResolutionAgent) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [status, setStatus] = useState<AgentStatus>('resolving');
   const [edits, setEdits] = useState<FileEditOptions[]>([]);
   const [error, setError] = useState<Error | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<FileEditOptions | null>(null);
+  const [editResolver, setEditResolver] = useState<
+    ((result: boolean) => void) | null
+  >(null);
 
   useEffect(() => {
     // Set up callbacks
@@ -105,10 +117,10 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
 
         setEvents((prev) => {
           // Mark any active thinking as complete
-          const updatedEvents = prev.map((e) =>
-            e.type === 'thinking' && !e.isComplete
-              ? { ...e, isComplete: true }
-              : e
+          const updatedEvents = prev.map((event) =>
+            event.type === 'thinking' && !event.isComplete
+              ? { ...event, isComplete: true }
+              : event
           );
 
           // Add new tool call
@@ -120,7 +132,7 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
               name: info.toolName,
               input: info.input,
               output: null,
-              status: 'running' as const,
+              state: { status: 'running' },
             },
           ];
         });
@@ -132,12 +144,36 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
           ? ('failed' as const)
           : ('complete' as const);
         setEvents((prev) =>
-          prev.map((e) =>
-            e.type === 'tool' && e.callId === callId
-              ? { ...e, output: info.output, status }
-              : e
+          prev.map((event) =>
+            event.type === 'tool' && event.callId === callId
+              ? { ...event, output: info.output, state: { status } }
+              : event
           )
         );
+      },
+
+      onEditRequested: async (edit) => {
+        setEvents((prev) => {
+          const lastIndex = prev.length - 1;
+          const lastEvent = prev[lastIndex];
+
+          if (!lastEvent || lastEvent.type !== 'tool') return prev;
+
+          return [
+            ...prev.slice(0, lastIndex),
+            {
+              ...lastEvent,
+              state: { status: 'awaiting-approval', edit },
+            },
+          ];
+        });
+
+        // Return a promise that will be resolved when the user approves/rejects
+        return new Promise<boolean>((resolve) => {
+          setPendingEdit(edit);
+          setStatus('awaiting-approval');
+          setEditResolver(() => resolve);
+        });
       },
     });
 
@@ -165,11 +201,31 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
     runAgent();
   }, [agent]);
 
+  const handleApproveEdit = () => {
+    if (editResolver) {
+      editResolver(true);
+      setPendingEdit(null);
+      setEditResolver(null);
+      setStatus('resolving');
+    }
+  };
+
+  const handleRejectEdit = () => {
+    if (editResolver) {
+      editResolver(false);
+      setPendingEdit(null);
+      setEditResolver(null);
+      setStatus('resolving');
+    }
+  };
+
   return {
     events,
     status,
-    setStatus,
     edits,
     error,
+    pendingEdit,
+    onApproveEdit: handleApproveEdit,
+    onRejectEdit: handleRejectEdit,
   };
 }

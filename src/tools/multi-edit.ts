@@ -5,6 +5,7 @@ import {
   checkEditValidity,
   getFileContent,
   validateFileReadStatus,
+  editFile,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import path from 'path';
@@ -46,6 +47,7 @@ export function makeMultiEditTool(
       let fileContent = await getFileContent(absolutePath);
       const validEdits: FileEditOptions[] = [];
 
+      // Validate all edits first
       for (const edit of newEdits) {
         await checkEditValidity(
           relativePath,
@@ -65,9 +67,29 @@ export function makeMultiEditTool(
         validEdits.push(fileEdit);
       }
 
-      edits.push(...validEdits);
+      // Request approval for all edits as a batch
+      if (context.onEditRequested) {
+        const results: boolean[] = [];
 
-      return null;
+        for (const edit of validEdits) {
+          const approved = await context.onEditRequested(edit);
+          results.push(approved);
+
+          if (!approved) {
+            throw new Error(
+              `Edit ${results.length} of ${validEdits.length} rejected by user. Stopping multi-edit operation.`
+            );
+          }
+        }
+      }
+
+      // Apply all edits sequentially
+      for (const edit of validEdits) {
+        await editFile(edit);
+        edits.push(edit);
+      }
+
+      return `Successfully applied ${validEdits.length} edit(s)`;
     },
     {
       name: 'multiedit',

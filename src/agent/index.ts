@@ -61,6 +61,7 @@ export interface ConflictAgentCallbacks {
     callId?: string;
     isError?: boolean;
   }) => void;
+  onEditRequested?: (edit: FileEditOptions) => Promise<boolean>;
 }
 
 export class ConflictResolutionAgent {
@@ -80,6 +81,10 @@ export class ConflictResolutionAgent {
     this.callbacks = { ...this.callbacks, ...cb };
   }
 
+  getCallbacks(): ConflictAgentCallbacks {
+    return this.callbacks;
+  }
+
   getEdits(): FileEditOptions[] {
     return this.edits;
   }
@@ -88,6 +93,9 @@ export class ConflictResolutionAgent {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
     const context: ToolContext = {
       readFiles: new Map(),
+      ...(this.callbacks.onEditRequested && {
+        onEditRequested: this.callbacks.onEditRequested,
+      }),
     };
     this.emittedToolCallIds.clear();
 

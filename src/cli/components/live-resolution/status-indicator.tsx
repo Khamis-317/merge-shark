@@ -24,7 +24,7 @@ function isInProgress(event?: StreamEvent) {
     case 'thinking':
       return !event.isComplete;
     case 'tool':
-      return event.status === 'running';
+      return event.state.status === 'running';
   }
 }
 
@@ -34,6 +34,11 @@ export function StatusIndicator({
   edits,
   error,
 }: StatusIndicatorProps) {
+  if (status === 'awaiting-approval') {
+    // Don't show progress indicator when awaiting approval
+    return null;
+  }
+
   if (status === 'resolving' && !isInProgress(events.at(-1))) {
     return (
       <Box>

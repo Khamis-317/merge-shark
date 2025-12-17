@@ -6,6 +6,7 @@ import {
   checkEditValidity,
   getFileContent,
   validateFileReadStatus,
+  editFile,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
@@ -42,9 +43,21 @@ export function makeEditTool(
         replaceAll,
       };
 
+      if (context.onEditRequested) {
+        const approved = await context.onEditRequested(fileEdit);
+
+        if (!approved) {
+          throw new Error('Edit rejected by user');
+        }
+      }
+
+      // Apply the edit
+      await editFile(fileEdit);
+
+      // Keep track of edits for logging/history
       edits.push(fileEdit);
 
-      return null;
+      return 'Edit applied successfully';
     },
     {
       name: 'edit',
