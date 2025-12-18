@@ -1,7 +1,15 @@
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
-import { createAgent } from 'langchain';
+import {
+  createAgent,
+  AIMessageChunk,
+  BaseMessage,
+  ToolMessage,
+  DynamicStructuredTool,
+  type ContentBlock,
+  type ToolCall,
+} from 'langchain';
 import { makeEditTool } from '../tools/edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
@@ -17,16 +25,8 @@ import {
   formatMergeInfo,
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
-import {
-  AIMessageChunk,
-  BaseMessage,
-  ContentBlock,
-  ToolMessage,
-} from '@langchain/core/messages';
-import type { ToolCall } from '@langchain/core/messages/tool';
 import { z } from 'zod';
 
-import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
 import { appendFile } from 'node:fs/promises';
@@ -111,7 +111,7 @@ export class ConflictResolutionAgent {
       );
     }
 
-    const tools: StructuredToolInterface[] = [
+    const tools: DynamicStructuredTool[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
       makeLsTool(this.repoPath),
@@ -178,10 +178,10 @@ export class ConflictResolutionAgent {
       UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
     >
   ): void {
-    if (!('agent' in chunk)) {
+    if (!('model_request' in chunk)) {
       return;
     }
-    const agentUpdate = chunk['agent'];
+    const agentUpdate = chunk['model_request'];
 
     const schema = z.array(
       z.object({
@@ -265,10 +265,7 @@ export class ConflictResolutionAgent {
     const output =
       typeof content === 'string' ? this.tryParseJson(content) : content;
 
-    // Check if the tool call resulted in an error
-    // LangChain ToolMessages have a status field that can be 'error'
-    const isError =
-      (message as unknown as { status?: string }).status === 'error';
+    const isError = message.status !== 'success';
 
     if (this.callbacks.onToolEnd) {
       const info: {
