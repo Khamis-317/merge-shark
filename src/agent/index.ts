@@ -1,9 +1,8 @@
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { createAgent } from 'langchain';
 import { makeEditTool } from '../tools/edit.js';
-import { makeMultiEditTool } from '../tools/multi-edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
@@ -115,7 +114,6 @@ export class ConflictResolutionAgent {
     const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
-      makeMultiEditTool(this.repoPath, this.edits, context),
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
@@ -126,8 +124,8 @@ export class ConflictResolutionAgent {
       makeGetLastMergeCommitsTool(this.repoPath),
     ];
 
-    const agent = createReactAgent({
-      llm: this.llm,
+    const agent = createAgent({
+      model: this.llm,
       tools,
     });
 

@@ -47,7 +47,9 @@ export function makeEditTool(
         const approved = await context.onEditRequested(fileEdit);
 
         if (!approved) {
-          throw new Error('Edit rejected by user');
+          throw new Error(
+            'Edit rejected by user. Consider another edit instead.'
+          );
         }
       }
 

@@ -77,7 +77,7 @@ export function makeMultiEditTool(
 
           if (!approved) {
             throw new Error(
-              `Edit ${results.length} of ${validEdits.length} rejected by user. Stopping multi-edit operation.`
+              `Edit ${results.length} of ${validEdits.length} rejected by user. No edits have been applied. Consider another edit instead.`
             );
           }
         }
