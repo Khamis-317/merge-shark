@@ -7,7 +7,7 @@ interface EventListProps {
   events: StreamEvent[];
   repoPath: string;
   onApproveEdit: () => void;
-  onRejectEdit: () => void;
+  onRejectEdit: (feedback?: string) => void;
 }
 
 export function EventList({

@@ -70,16 +70,18 @@ export function makeMultiEditTool(
 
       // Request approval for all edits as a batch
       if (context.onEditRequested) {
-        const results: boolean[] = [];
+        for (let i = 0; i < validEdits.length; i++) {
+          const edit = validEdits[i];
+          if (!edit) continue;
 
-        for (const edit of validEdits) {
-          const approved = await context.onEditRequested(edit);
-          results.push(approved);
+          const result = await context.onEditRequested(edit);
 
-          if (!approved) {
-            throw new Error(
-              `Edit ${results.length} of ${validEdits.length} rejected by user. No edits have been applied. Consider another edit instead.`
-            );
+          if (!result.approved) {
+            const baseMessage = `Edit ${i + 1} of ${validEdits.length} rejected by user. No edits have been applied.`;
+            const message = result.feedback
+              ? `${baseMessage} User feedback: ${result.feedback}`
+              : `${baseMessage} Consider another edit instead.`;
+            throw new Error(message);
           }
         }
       }

@@ -10,7 +10,7 @@ export type ToolCallDisplayProps = {
   repoPath: string;
   state: ToolState;
   onApproveEdit: () => void;
-  onRejectEdit: () => void;
+  onRejectEdit: (feedback?: string) => void;
 };
 
 export function ToolCallDisplay({
