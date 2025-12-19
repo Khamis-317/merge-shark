@@ -1,8 +1,5 @@
-import { ChatGoogle } from '@langchain/google-gauth';
-import path from 'node:path';
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
-import { readFile } from '../utils/read-file.js';
 import { makeReadTool } from '../tools/read.js';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { makeEditTool } from '../tools/edit.js';
@@ -21,86 +18,371 @@ import {
   formatMergeInfo,
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
+import {
+  AIMessageChunk,
+  BaseMessage,
+  ContentBlock,
+  ToolMessage,
+} from '@langchain/core/messages';
+import type { ToolCall } from '@langchain/core/messages/tool';
+import { z } from 'zod';
 
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
+import { appendFile } from 'node:fs/promises';
+import type {
+  BinaryOperatorAggregate,
+  Messages,
+  UpdateType,
+} from '@langchain/langgraph';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
 
-export async function resolveConflicts(repoPath: string) {
-  const conflictingFiles = await getConflictingFiles(repoPath);
-  const conflictingFilesContent = await Promise.all(
-    conflictingFiles.map(async (file) => {
-      return {
-        name: file,
-        content: await readFile(path.join(repoPath, file)),
-      };
-    })
-  );
-  const context: ToolContext = { lastReadPath: null };
-  const edits: FileEditOptions[] = [];
+export type StreamTextChunk = {
+  id: string;
+  text: string;
+};
 
-  // Try to get merge information (may fail in case of rebase)
-  let mergeInfo: string | null = null;
-  try {
-    const mergeTarget = await gitMergeTarget(repoPath);
-    const mergeBase = await gitMergeBase(repoPath, 'HEAD', mergeTarget);
-    mergeInfo = formatMergeInfo(mergeTarget, mergeBase);
-  } catch {
-    // Merge info not available (likely a rebase operation)
-    console.log('Merge info not available - this might be a rebase operation');
+function chunkLog(chunk: unknown) {
+  appendFile('output.log', JSON.stringify(chunk, null, 2) + '\n');
+}
+
+export interface ConflictAgentCallbacks {
+  onMessageChunk?: (chunk: StreamTextChunk) => void;
+  onReasoningChunk?: (chunk: StreamTextChunk) => void;
+  onToolStart?: (info: {
+    toolName: string;
+    input: unknown;
+    callId?: string | undefined;
+  }) => void;
+  onToolEnd?: (info: {
+    toolName: string;
+    output: unknown;
+    callId?: string;
+    isError?: boolean;
+  }) => void;
+}
+
+export class ConflictResolutionAgent {
+  private callbacks: ConflictAgentCallbacks;
+  private edits: FileEditOptions[] = [];
+  private emittedToolCallIds = new Set<string>();
+
+  constructor(
+    private repoPath: string,
+    private llm: LanguageModelLike,
+    callbacks: ConflictAgentCallbacks = {}
+  ) {
+    this.callbacks = callbacks;
   }
 
-  const llm = new ChatGoogle({
-    model: 'gemini-2.5-flash',
-    verbose: true,
-    thinkingBudget: 24576, // Maximum thinking budget for Gemini 2.5 Flash
-  });
+  setCallbacks(cb: ConflictAgentCallbacks) {
+    this.callbacks = { ...this.callbacks, ...cb };
+  }
 
-  const tools: StructuredToolInterface[] = [
-    makeReadTool(repoPath, context),
-    makeEditTool(repoPath, edits, context),
-    makeMultiEditTool(repoPath, edits, context),
-    makeLsTool(repoPath),
-    makeRipgrepTool(repoPath),
-    makeGlobTool(repoPath),
-    makeGitBlameTool(repoPath),
-    makeGitDiffTool(repoPath),
-    makeGitLogTool(repoPath),
-    makeGetChangedFilesTool(repoPath),
-    makeGetLastMergeCommitsTool(repoPath),
-  ];
+  getEdits(): FileEditOptions[] {
+    return this.edits;
+  }
 
-  const agent = createReactAgent({
-    llm,
-    tools,
-  });
+  async run(): Promise<FileEditOptions[]> {
+    const conflictingFiles = await getConflictingFiles(this.repoPath);
+    const context: ToolContext = {
+      readFiles: new Map(),
+    };
+    this.emittedToolCallIds.clear();
 
-  const systemPrompt = createSystemPrompt({
-    systemInfo: {
-      operatingSystem: process.platform,
-      date: new Date(),
-      workingDirectory: repoPath,
-    },
-    mergeInfo,
-  });
+    // Try to get merge information (may fail in case of rebase)
+    let mergeInfo: string | null = null;
+    try {
+      const mergeTarget = await gitMergeTarget(this.repoPath);
+      const mergeBase = await gitMergeBase(this.repoPath, 'HEAD', mergeTarget);
+      mergeInfo = formatMergeInfo(mergeTarget, mergeBase);
+    } catch {
+      // Merge info not available (likely a rebase operation)
+      console.log(
+        'Merge info not available - this might be a rebase operation'
+      );
+    }
 
-  const userPrompt = dedent`
-    Resolve the conflicts in the following files:
-    ${conflictingFilesContent.map((file) => `<file name="${file.name}">\n${file.content}\n</file name="${file.name}">`).join('\n\n')}
-    `;
+    const tools: StructuredToolInterface[] = [
+      makeReadTool(this.repoPath, context),
+      makeEditTool(this.repoPath, this.edits, context),
+      makeMultiEditTool(this.repoPath, this.edits, context),
+      makeLsTool(this.repoPath),
+      makeRipgrepTool(this.repoPath),
+      makeGlobTool(this.repoPath),
+      makeGitBlameTool(this.repoPath),
+      makeGitDiffTool(this.repoPath),
+      makeGitLogTool(this.repoPath),
+      makeGetChangedFilesTool(this.repoPath),
+      makeGetLastMergeCommitsTool(this.repoPath),
+    ];
 
-  const messages = [
-    {
-      role: 'system',
-      content: systemPrompt,
-    },
-    {
-      role: 'user',
-      content: userPrompt,
-    },
-  ];
+    const agent = createReactAgent({
+      llm: this.llm,
+      tools,
+    });
 
-  await agent.invoke({ messages });
+    const systemPrompt = createSystemPrompt({
+      systemInfo: {
+        operatingSystem: process.platform,
+        date: new Date(),
+        workingDirectory: this.repoPath,
+      },
+      mergeInfo,
+    });
 
-  return edits;
+    const userPrompt = dedent`
+      Resolve the conflicts in the following files:
+      
+      ${conflictingFiles.map((file) => `- ${file}`).join('\n')}
+      `;
+
+    const messages = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: userPrompt,
+      },
+    ];
+
+    const stream = await agent.stream(
+      { messages },
+      { streamMode: ['messages', 'updates'], recursionLimit: 500 }
+    );
+
+    for await (const [mode, chunk] of stream) {
+      chunkLog({ mode, chunk });
+      if (mode === 'updates') {
+        this.handleStreamUpdate(chunk);
+      } else {
+        this.handleStreamMessage(chunk);
+      }
+    }
+
+    return this.edits;
+  }
+
+  private handleStreamUpdate(
+    chunk: Record<
+      string | number | symbol,
+      UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
+    >
+  ): void {
+    if (!('agent' in chunk)) {
+      return;
+    }
+    const agentUpdate = chunk['agent'];
+
+    const schema = z.array(
+      z.object({
+        kwargs: z.object({
+          tool_calls: z
+            .array(
+              z.object({
+                name: z.string(),
+                args: z.record(z.any()),
+                id: z.string(),
+              })
+            )
+            .optional()
+            .default([]),
+        }),
+      })
+    );
+
+    try {
+      const recordified = JSON.parse(JSON.stringify(agentUpdate.messages));
+      const messages = schema.parse(recordified);
+      for (const message of messages) {
+        const toolCalls = message.kwargs.tool_calls;
+
+        this.handleToolCalls(toolCalls);
+      }
+    } catch (e) {
+      chunkLog(
+        `Failed to parse agent messages: ${e} ${JSON.stringify(agentUpdate.messages, null, 2)}`
+      );
+    }
+  }
+
+  private handleStreamMessage(event: unknown): void {
+    if (Array.isArray(event)) {
+      for (const item of event) {
+        this.handleStreamMessage(item);
+      }
+      return;
+    }
+
+    if (event instanceof AIMessageChunk) {
+      this.handleAIMessageChunk(event);
+      return;
+    }
+
+    if (event instanceof ToolMessage) {
+      this.handleToolMessage(event);
+    }
+  }
+
+  private handleAIMessageChunk(chunk: AIMessageChunk): void {
+    const messageId = chunk.id ?? 'ai-message';
+    const content = chunk.content;
+
+    if (Array.isArray(content)) {
+      for (const part of content) {
+        if (part.type === 'reasoning') {
+          this.emitReasoningChunk(
+            messageId,
+            (part as ContentBlock.Reasoning).reasoning
+          );
+        }
+
+        if (part.type === 'text') {
+          this.emitMessageChunk(messageId, (part as ContentBlock.Text).text);
+        }
+      }
+    } else {
+      const text = this.asNonEmptyString(content);
+      if (text) {
+        this.emitMessageChunk(messageId, text);
+      }
+    }
+  }
+
+  private handleToolMessage(message: ToolMessage): void {
+    const toolName = message.name ?? 'tool';
+    const callId = message.tool_call_id ?? undefined;
+    const content = this.extractContentString(message.content);
+    const output =
+      typeof content === 'string' ? this.tryParseJson(content) : content;
+
+    // Check if the tool call resulted in an error
+    // LangChain ToolMessages have a status field that can be 'error'
+    const isError =
+      (message as unknown as { status?: string }).status === 'error';
+
+    if (this.callbacks.onToolEnd) {
+      const info: {
+        toolName: string;
+        output: unknown;
+        callId?: string;
+        isError?: boolean;
+      } = {
+        toolName,
+        output,
+      };
+
+      if (callId !== undefined) {
+        info.callId = callId;
+      }
+
+      if (isError) {
+        info.isError = true;
+      }
+
+      this.callbacks.onToolEnd(info);
+    }
+
+    if (callId) {
+      this.emittedToolCallIds.delete(callId);
+    }
+  }
+
+  private handleToolCalls(toolCalls: ToolCall[]): void {
+    for (const call of toolCalls) {
+      if (call.id && this.emittedToolCallIds.has(call.id)) {
+        continue;
+      }
+
+      if (call.id) {
+        this.emittedToolCallIds.add(call.id);
+      }
+
+      if (this.callbacks.onToolStart) {
+        const info = {
+          toolName: call.name,
+          input: call.args,
+          callId: call.id,
+        };
+
+        this.callbacks.onToolStart(info);
+      }
+    }
+  }
+
+  private emitReasoningChunk(messageId: string, text: string): void {
+    if (!text) {
+      return;
+    }
+
+    const chunk = { id: messageId, text };
+
+    if (this.callbacks.onReasoningChunk) {
+      this.callbacks.onReasoningChunk(chunk);
+    }
+  }
+
+  private emitMessageChunk(messageId: string, text: string): void {
+    if (!text) {
+      return;
+    }
+
+    if (this.callbacks.onMessageChunk) {
+      this.callbacks.onMessageChunk({ id: messageId, text });
+    }
+  }
+
+  private asNonEmptyString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    return value;
+  }
+
+  private extractContentString(content: unknown): string | null {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      const parts = content
+        .map((part) => {
+          if (typeof part === 'string') {
+            return part;
+          }
+
+          if (part && typeof part === 'object') {
+            if (
+              'text' in part &&
+              typeof (part as { text?: unknown }).text === 'string'
+            ) {
+              return (part as { text: string }).text;
+            }
+          }
+
+          return null;
+        })
+        .filter((part): part is string => {
+          return typeof part === 'string' && part.length > 0;
+        });
+
+      if (parts.length > 0) {
+        return parts.join('\n');
+      }
+    }
+
+    return null;
+  }
+
+  private tryParseJson(value: string): unknown {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
 }

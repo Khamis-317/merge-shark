@@ -6,10 +6,20 @@ import { editFile, type FileEditOptions } from '../../utils/edit-file.js';
 export interface SharkAppProps {
   edits: FileEditOptions[];
   repoPath: string;
+  onBack: () => void;
 }
 
-export function SharkApp({ edits, repoPath }: SharkAppProps) {
+type EditStatus = 'pending' | 'accepted' | 'rejected';
+
+export function SharkApp({ edits, repoPath, onBack }: SharkAppProps) {
   const [activeEditIndex, setActiveEditIndex] = useState(0);
+  const [editStatuses, setEditStatuses] = useState<EditStatus[]>(
+    edits.map(() => 'pending')
+  );
+
+  const allProcessed = editStatuses.every(
+    (status) => status === 'accepted' || status === 'rejected'
+  );
 
   const handleNext = () => {
     const currentEdit = edits[activeEditIndex];
@@ -22,7 +32,7 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
 
   const handlePrevious = () => {
     if (activeEditIndex === 0) {
-      return beep();
+      return onBack();
     }
 
     return setActiveEditIndex((current) => current - 1);
@@ -30,21 +40,30 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
 
   const handleApply = (edit: FileEditOptions) => {
     editFile(edit);
+    setEditStatuses((statuses) => {
+      const newStatuses = [...statuses];
+      newStatuses[activeEditIndex] = 'accepted';
+      return newStatuses;
+    });
   };
 
   const handleReject = () => {
-    // FIXME: Handle rejection
-    beep();
+    setEditStatuses((statuses) => {
+      const newStatuses = [...statuses];
+      newStatuses[activeEditIndex] = 'rejected';
+      return newStatuses;
+    });
   };
 
   const handleApplyAll = () => {
     edits.forEach((edit) => {
       editFile(edit);
     });
+    setEditStatuses(edits.map(() => 'accepted'));
   };
 
   const handleRejectAll = () => {
-    beep();
+    setEditStatuses(edits.map(() => 'rejected'));
   };
 
   const handleExit = () => {
@@ -56,6 +75,7 @@ export function SharkApp({ edits, repoPath }: SharkAppProps) {
       repoPath={repoPath}
       edits={edits}
       activeEditIndex={activeEditIndex}
+      allProcessed={allProcessed}
       onApply={handleApply}
       onReject={handleReject}
       onNext={handleNext}

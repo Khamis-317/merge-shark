@@ -7,6 +7,7 @@ export interface ResolutionReviewerProps {
   repoPath: string;
   edits: FileEditOptions[];
   activeEditIndex: number;
+  allProcessed: boolean;
   onApply: (edit: FileEditOptions) => void;
   onReject: (edit: FileEditOptions) => void;
   onNext: () => void;
@@ -20,6 +21,7 @@ export function ResolutionReviewer({
   repoPath,
   edits,
   activeEditIndex,
+  allProcessed,
   onApply,
   onReject,
   onNext,
@@ -31,12 +33,19 @@ export function ResolutionReviewer({
   const edit = edits[activeEditIndex];
 
   useInput((input, key) => {
+    if (key.escape || input === 'q') {
+      onExit();
+    }
+
+    // Don't process other inputs if all items are processed
+    if (allProcessed) {
+      return;
+    }
+
     if (key.return && key.ctrl) {
       onApplyAll();
     } else if (input === 'r' && key.ctrl) {
       onRejectAll();
-    } else if (key.escape || input === 'q') {
-      onExit();
     } else if (key.return && edit) {
       onApply(edit);
       onNext();
@@ -49,6 +58,26 @@ export function ResolutionReviewer({
       onNext();
     }
   });
+
+  // Show "All done" message when all items are processed
+  if (allProcessed) {
+    return (
+      <Box
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        minHeight={10}
+        paddingY={3}
+      >
+        <Text color="green" bold>
+          All done ✅
+        </Text>
+        <Box marginTop={2}>
+          <Text dimColor>Press esc or q to exit</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   if (!edit) {
     return <Text>No edit to review!</Text>;

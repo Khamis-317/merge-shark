@@ -2,31 +2,32 @@ import { tool } from '@langchain/core/tools';
 import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
 import path from 'path';
+import fs from 'node:fs/promises';
 import type { ToolContext } from '../utils/tool-context.js';
 import { dedent } from '../utils/dedent.js';
 
-export function makeReadTool(repoPath: string, context: ToolContext) {
-  const readSchema = z.object({
-    relativePath: z.string(),
-    limit: z.number().optional(),
-    offset: z.number().optional(),
-  });
+const readInputSchema = z.object({
+  relativePath: z.string(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
 
+export type ReadToolInput = z.infer<typeof readInputSchema>;
+
+export function makeReadTool(repoPath: string, context: ToolContext) {
   return tool(
     async ({
       relativePath,
       limit = DEFAULT_FILE_READ_LINES_LIMIT,
       offset = 0,
-    }: {
-      relativePath: string;
-      limit: number;
-      offset: number;
     }) => {
       const absolutePath: string = path.resolve(repoPath, relativePath);
 
       const data = await readFile(absolutePath, { limit, offset });
 
-      context.lastReadPath = absolutePath;
+      // Track the file's modification time when it was read
+      const stats = await fs.stat(absolutePath);
+      context.readFiles.set(absolutePath, stats.mtime);
 
       return data;
     },
@@ -42,7 +43,7 @@ export function makeReadTool(repoPath: string, context: ToolContext) {
         but it's recommended to read the whole file by not providing these parameters.
         You need to use other tools with this tool (if they are available):
         `,
-      schema: readSchema,
+      schema: readInputSchema,
     }
   );
 }

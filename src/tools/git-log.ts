@@ -6,22 +6,20 @@ import {
   DEFAULT_MAX_COMMITS_PER_FILE,
 } from '../utils/git-utils.js';
 
-export function makeGitLogTool(repoPath: string) {
-  const recentCommitsSchema = z.object({
-    relativeFilePath: z.string(),
-    branchRef: z.string().default('HEAD').optional(),
-    limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
-  });
+const gitLogInputSchema = z.object({
+  relativeFilePath: z.string(),
+  branchRef: z.string().default('HEAD').optional(),
+  limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
+});
 
+export type GitLogToolInput = z.infer<typeof gitLogInputSchema>;
+
+export function makeGitLogTool(repoPath: string) {
   return tool(
     async ({
       relativeFilePath,
       branchRef = 'HEAD',
       limit = DEFAULT_MAX_COMMITS_PER_FILE,
-    }: {
-      relativeFilePath: string;
-      branchRef: string;
-      limit: number;
     }) => {
       const data = await getLastCommitsForFile(
         repoPath,
@@ -48,7 +46,7 @@ export function makeGitLogTool(repoPath: string) {
         - To understand recent history and context of a conflicted file on either our branch (HEAD) or their branch (MERGE_HEAD)
         - Use the returned commit hashes with "git_diff" or "git_blame" for detailed analysis if the commit appears relevant based on its message
         `,
-      schema: recentCommitsSchema,
+      schema: gitLogInputSchema,
     }
   );
 }

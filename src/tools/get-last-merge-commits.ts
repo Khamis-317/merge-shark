@@ -6,13 +6,17 @@ import {
   DEFAULT_MAX_COMMITS_PER_FILE,
 } from '../utils/git-utils.js';
 
-export function makeGetLastMergeCommitsTool(repoPath: string) {
-  const lastMergeCommitsSchema = z.object({
-    limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
-  });
+const getLastMergeCommitsInputSchema = z.object({
+  limit: z.number().default(DEFAULT_MAX_COMMITS_PER_FILE).optional(),
+});
 
+export type GetLastMergeCommitsToolInput = z.infer<
+  typeof getLastMergeCommitsInputSchema
+>;
+
+export function makeGetLastMergeCommitsTool(repoPath: string) {
   return tool(
-    async ({ limit = DEFAULT_MAX_COMMITS_PER_FILE }: { limit: number }) => {
+    async ({ limit = DEFAULT_MAX_COMMITS_PER_FILE }) => {
       const mergeCommitsOutput = await getLastMergeCommits(repoPath, limit);
       return mergeCommitsOutput;
     },
@@ -33,7 +37,7 @@ export function makeGetLastMergeCommitsTool(repoPath: string) {
         - To find recent merge commits that integrated branches with full context
         - Use the returned commit hashes with "git_diff" or "git_blame" for detailed analysis about how the past merges were done
         `,
-      schema: lastMergeCommitsSchema,
+      schema: getLastMergeCommitsInputSchema,
     }
   );
 }

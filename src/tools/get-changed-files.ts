@@ -3,13 +3,17 @@ import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
 import { getChangedFilesInCommit } from '../utils/git-utils.js';
 
-export function makeGetChangedFilesTool(repoPath: string) {
-  const changedFilesSchema = z.object({
-    commitHash: z.string(),
-  });
+const getChangedFilesInputSchema = z.object({
+  commitHash: z.string(),
+});
 
+export type GetChangedFilesToolInput = z.infer<
+  typeof getChangedFilesInputSchema
+>;
+
+export function makeGetChangedFilesTool(repoPath: string) {
   return tool(
-    async ({ commitHash }: { commitHash: string }) => {
+    async ({ commitHash }) => {
       const changedFiles = await getChangedFilesInCommit(repoPath, commitHash);
       return changedFiles;
     },
@@ -30,7 +34,7 @@ export function makeGetChangedFilesTool(repoPath: string) {
         - To understand the scope of changes in a commit
         - Use the returned file paths with "git_diff", "git_log", and "git_blame" for detailed analysis of specific files
         `,
-      schema: changedFilesSchema,
+      schema: getChangedFilesInputSchema,
     }
   );
 }

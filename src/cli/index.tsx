@@ -1,9 +1,12 @@
 import { render } from 'ink';
-import { SharkApp } from './components/shark-app.js';
-import { resolveConflicts } from '../agent/index.js';
+import { LiveResolution } from './components/live-resolution.js';
+import { ConflictResolutionAgent } from '../agent/index.js';
+import type { Model } from '../models/index.js';
 
-export async function start(repoPath: string) {
-  const edits = await resolveConflicts(repoPath);
+export async function start(repoPath: string, model: Model) {
+  const agent = new ConflictResolutionAgent(repoPath, model.factory());
 
-  render(<SharkApp edits={edits} repoPath={repoPath} />);
+  render(
+    <LiveResolution agent={agent} repoPath={repoPath} model={model.name} />
+  );
 }
