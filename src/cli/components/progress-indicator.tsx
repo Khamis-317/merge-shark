@@ -1,4 +1,5 @@
 import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
 
 export interface ProgressIndicatorProps {
   status: string;
@@ -7,7 +8,9 @@ export interface ProgressIndicatorProps {
 export function ProgressIndicator({ status }: ProgressIndicatorProps) {
   return (
     <Box>
-      <Text color="cyan">↺</Text>
+      <Text color="cyan">
+        <Spinner type="dots" />
+      </Text>
       <Text> {status}</Text>
     </Box>
   );

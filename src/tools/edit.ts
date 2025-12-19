@@ -1,13 +1,11 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
-import path from 'node:path';
-import fs from 'node:fs/promises';
+import path from 'path';
 import {
   checkEditValidity,
   getFileContent,
   validateFileReadStatus,
-  editFile,
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
@@ -44,26 +42,9 @@ export function makeEditTool(
         replaceAll,
       };
 
-      if (context.onEditRequested) {
-        const approved = await context.onEditRequested(fileEdit);
-
-        if (!approved) {
-          throw new Error(
-            'Edit rejected by user. Consider another edit instead.'
-          );
-        }
-      }
-
-      // Apply the edit
-      await editFile(fileEdit);
-
-      const stats = await fs.stat(absolutePath);
-      context.readFiles.set(absolutePath, stats.mtime);
-
-      // Keep track of edits for logging/history
       edits.push(fileEdit);
 
-      return 'Edit applied successfully';
+      return null;
     },
     {
       name: 'edit',

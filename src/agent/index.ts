@@ -1,16 +1,9 @@
 import { createSystemPrompt } from './system-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
-import {
-  createAgent,
-  AIMessageChunk,
-  BaseMessage,
-  ToolMessage,
-  DynamicStructuredTool,
-  type ContentBlock,
-  type ToolCall,
-} from 'langchain';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { makeEditTool } from '../tools/edit.js';
+import { makeMultiEditTool } from '../tools/multi-edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
@@ -25,8 +18,16 @@ import {
   formatMergeInfo,
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
+import {
+  AIMessageChunk,
+  BaseMessage,
+  ContentBlock,
+  ToolMessage,
+} from '@langchain/core/messages';
+import type { ToolCall } from '@langchain/core/messages/tool';
 import { z } from 'zod';
 
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
 import { appendFile } from 'node:fs/promises';
@@ -60,7 +61,6 @@ export interface ConflictAgentCallbacks {
     callId?: string;
     isError?: boolean;
   }) => void;
-  onEditRequested?: (edit: FileEditOptions) => Promise<boolean>;
 }
 
 export class ConflictResolutionAgent {
@@ -80,10 +80,6 @@ export class ConflictResolutionAgent {
     this.callbacks = { ...this.callbacks, ...cb };
   }
 
-  getCallbacks(): ConflictAgentCallbacks {
-    return this.callbacks;
-  }
-
   getEdits(): FileEditOptions[] {
     return this.edits;
   }
@@ -92,9 +88,6 @@ export class ConflictResolutionAgent {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
     const context: ToolContext = {
       readFiles: new Map(),
-      ...(this.callbacks.onEditRequested && {
-        onEditRequested: this.callbacks.onEditRequested,
-      }),
     };
     this.emittedToolCallIds.clear();
 
@@ -111,9 +104,10 @@ export class ConflictResolutionAgent {
       );
     }
 
-    const tools: DynamicStructuredTool[] = [
+    const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
+      makeMultiEditTool(this.repoPath, this.edits, context),
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
@@ -124,8 +118,8 @@ export class ConflictResolutionAgent {
       makeGetLastMergeCommitsTool(this.repoPath),
     ];
 
-    const agent = createAgent({
-      model: this.llm,
+    const agent = createReactAgent({
+      llm: this.llm,
       tools,
     });
 
@@ -178,10 +172,10 @@ export class ConflictResolutionAgent {
       UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
     >
   ): void {
-    if (!('model_request' in chunk)) {
+    if (!('agent' in chunk)) {
       return;
     }
-    const agentUpdate = chunk['model_request'];
+    const agentUpdate = chunk['agent'];
 
     const schema = z.array(
       z.object({
@@ -265,7 +259,10 @@ export class ConflictResolutionAgent {
     const output =
       typeof content === 'string' ? this.tryParseJson(content) : content;
 
-    const isError = message.status !== 'success';
+    // Check if the tool call resulted in an error
+    // LangChain ToolMessages have a status field that can be 'error'
+    const isError =
+      (message as unknown as { status?: string }).status === 'error';
 
     if (this.callbacks.onToolEnd) {
       const info: {

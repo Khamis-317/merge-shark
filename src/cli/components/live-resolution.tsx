@@ -1,5 +1,7 @@
 import { Box, Text } from 'ink';
 import { ConflictResolutionAgent } from '../../agent/index.js';
+import { SharkApp } from './shark-app.js';
+import { ReviewButton } from './review-button.js';
 import { useAgentResolution } from '../hooks/use-agent-resolution.js';
 import { Header } from './live-resolution/header.js';
 import { EventList } from './live-resolution/event-list.js';
@@ -17,8 +19,21 @@ export function LiveResolution({
   repoPath,
   model,
 }: LiveResolutionProps) {
-  const { events, status, edits, error, onApproveEdit, onRejectEdit } =
-    useAgentResolution(agent);
+  const { events, status, setStatus, edits, error } = useAgentResolution(agent);
+
+  const handleReview = () => {
+    setStatus('reviewing');
+  };
+
+  const handleBackToLive = () => {
+    setStatus('complete');
+  };
+
+  if (status === 'reviewing') {
+    return (
+      <SharkApp edits={edits} repoPath={repoPath} onBack={handleBackToLive} />
+    );
+  }
 
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">
@@ -27,13 +42,8 @@ export function LiveResolution({
         <Text color="blue">{model}</Text>
       </Box>
 
-      {/* Render events in order - edit approval is now handled within ToolCallDisplay */}
-      <EventList
-        events={events}
-        repoPath={repoPath}
-        onApproveEdit={onApproveEdit}
-        onRejectEdit={onRejectEdit}
-      />
+      {/* Render events in order */}
+      <EventList events={events} />
 
       {/* Progress indicator */}
       <StatusIndicator
@@ -42,6 +52,13 @@ export function LiveResolution({
         edits={edits}
         error={error}
       />
+
+      {/* Review button when complete */}
+      {status === 'complete' && edits.length > 0 && (
+        <Box marginTop={1}>
+          <ReviewButton onReview={handleReview} />
+        </Box>
+      )}
 
       {/* Error message */}
       <ErrorDisplay error={error} />

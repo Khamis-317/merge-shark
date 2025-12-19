@@ -5,11 +5,9 @@ import {
   checkEditValidity,
   getFileContent,
   validateFileReadStatus,
-  editFile,
   type FileEditOptions,
 } from '../utils/edit-file.js';
-import path from 'node:path';
-import fs from 'node:fs/promises';
+import path from 'path';
 import type { ToolContext } from '../utils/tool-context.js';
 
 const multiEditInputSchema = z.object({
@@ -48,7 +46,6 @@ export function makeMultiEditTool(
       let fileContent = await getFileContent(absolutePath);
       const validEdits: FileEditOptions[] = [];
 
-      // Validate all edits first
       for (const edit of newEdits) {
         await checkEditValidity(
           relativePath,
@@ -68,32 +65,9 @@ export function makeMultiEditTool(
         validEdits.push(fileEdit);
       }
 
-      // Request approval for all edits as a batch
-      if (context.onEditRequested) {
-        const results: boolean[] = [];
+      edits.push(...validEdits);
 
-        for (const edit of validEdits) {
-          const approved = await context.onEditRequested(edit);
-          results.push(approved);
-
-          if (!approved) {
-            throw new Error(
-              `Edit ${results.length} of ${validEdits.length} rejected by user. No edits have been applied. Consider another edit instead.`
-            );
-          }
-        }
-      }
-
-      // Apply all edits sequentially
-      for (const edit of validEdits) {
-        await editFile(edit);
-        edits.push(edit);
-      }
-
-      const stats = await fs.stat(absolutePath);
-      context.readFiles.set(absolutePath, stats.mtime);
-
-      return `Successfully applied ${validEdits.length} edit(s)`;
+      return null;
     },
     {
       name: 'multiedit',
