@@ -20,6 +20,11 @@ import { makeGitLogTool } from '../tools/git-log.js';
 import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
 import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
 import {
+  makeManageTodoTool,
+  MANAGE_TODO_TOOL_NAME,
+  type TodoItem,
+} from '../tools/manage-todo.js';
+import {
   gitMergeTarget,
   gitMergeBase,
   formatMergeInfo,
@@ -62,6 +67,7 @@ export interface ConflictAgentCallbacks {
     isError?: boolean;
   }) => void;
   onEditRequested?: (edit: FileEditOptions) => Promise<EditApprovalResult>;
+  onTodoUpdate?: (todos: TodoItem[]) => void;
 }
 
 export class ConflictResolutionAgent {
@@ -123,6 +129,11 @@ export class ConflictResolutionAgent {
       makeGitLogTool(this.repoPath),
       makeGetChangedFilesTool(this.repoPath),
       makeGetLastMergeCommitsTool(this.repoPath),
+      makeManageTodoTool({
+        ...(this.callbacks.onTodoUpdate && {
+          onTodoUpdate: this.callbacks.onTodoUpdate,
+        }),
+      }),
     ];
 
     const agent = createAgent({
@@ -261,6 +272,10 @@ export class ConflictResolutionAgent {
 
   private handleToolMessage(message: ToolMessage): void {
     const toolName = message.name ?? 'tool';
+
+    // Tool updates are handled through onTodoUpdate
+    if (toolName === MANAGE_TODO_TOOL_NAME) return;
+
     const callId = message.tool_call_id ?? undefined;
     const content = this.extractContentString(message.content);
     const output =
@@ -297,6 +312,9 @@ export class ConflictResolutionAgent {
 
   private handleToolCalls(toolCalls: ToolCall[]): void {
     for (const call of toolCalls) {
+      // Tool updates are handled through onTodoUpdate
+      if (call.name === MANAGE_TODO_TOOL_NAME) return;
+
       if (call.id && this.emittedToolCallIds.has(call.id)) {
         continue;
       }
