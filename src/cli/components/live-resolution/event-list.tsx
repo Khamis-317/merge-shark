@@ -5,9 +5,17 @@ import type { StreamEvent } from '../../hooks/use-agent-resolution.js';
 
 interface EventListProps {
   events: StreamEvent[];
+  repoPath: string;
+  onApproveEdit: () => void;
+  onRejectEdit: () => void;
 }
 
-export function EventList({ events }: EventListProps) {
+export function EventList({
+  events,
+  repoPath,
+  onApproveEdit,
+  onRejectEdit,
+}: EventListProps) {
   return (
     <>
       {events.map((event, index) => {
@@ -34,7 +42,10 @@ export function EventList({ events }: EventListProps) {
                 toolName={event.name}
                 input={event.input}
                 output={event.output}
-                status={event.status}
+                state={event.state}
+                repoPath={repoPath}
+                onApproveEdit={onApproveEdit}
+                onRejectEdit={onRejectEdit}
               />
             );
 

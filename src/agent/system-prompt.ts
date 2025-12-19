@@ -65,12 +65,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
 
     At each step, output a message to let the user know what you are doing.
 
-    Once you figure out the resolution for each conflict, you MUST apply file edits by calling one of the following tools:
-    - **edit** tool to perform a single edit in a file.
-    - **multiedit** tool to perform multiple edits in a file within one operation.
-
-    Prefer using multi-edit whenever having multiple conflicts in the same file.
-    This ensures you are editing against the most up-to-date file contents and that formatting (indentation, spacing, etc.) is preserved exactly.
+    Once you figure out the resolution for each conflict, you MUST apply file edits by calling the **edit** tool.
     </resolution_format>
     <code_guidelines>
     - Don't add any comments or explanations to the code unless it was present in the existing code.
