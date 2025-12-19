@@ -1,7 +1,8 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { dedent } from '../utils/dedent.js';
-import path from 'path';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 import {
   checkEditValidity,
   getFileContent,
@@ -55,6 +56,9 @@ export function makeEditTool(
 
       // Apply the edit
       await editFile(fileEdit);
+
+      const stats = await fs.stat(absolutePath);
+      context.readFiles.set(absolutePath, stats.mtime);
 
       // Keep track of edits for logging/history
       edits.push(fileEdit);

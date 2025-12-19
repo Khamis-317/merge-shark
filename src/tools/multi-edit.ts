@@ -8,7 +8,8 @@ import {
   editFile,
   type FileEditOptions,
 } from '../utils/edit-file.js';
-import path from 'path';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 import type { ToolContext } from '../utils/tool-context.js';
 
 const multiEditInputSchema = z.object({
@@ -88,6 +89,9 @@ export function makeMultiEditTool(
         await editFile(edit);
         edits.push(edit);
       }
+
+      const stats = await fs.stat(absolutePath);
+      context.readFiles.set(absolutePath, stats.mtime);
 
       return `Successfully applied ${validEdits.length} edit(s)`;
     },
