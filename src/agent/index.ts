@@ -14,11 +14,7 @@ import { makeEditTool } from '../tools/edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
-import { makeGitBlameTool } from '../tools/git-blame.js';
-import { makeGitDiffTool } from '../tools/git-diff.js';
-import { makeGitLogTool } from '../tools/git-log.js';
-import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
-import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
+import { makeBashTool } from '../tools/bash.js';
 import {
   makeManageTodoTool,
   MANAGE_TODO_TOOL_NAME,
@@ -119,11 +115,7 @@ export class ConflictResolutionAgent {
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
-      makeGitBlameTool(this.repoPath),
-      makeGitDiffTool(this.repoPath),
-      makeGitLogTool(this.repoPath),
-      makeGetChangedFilesTool(this.repoPath),
-      makeGetLastMergeCommitsTool(this.repoPath),
+      makeBashTool(this.repoPath),
       makeManageTodoTool({
         ...(this.callbacks.onTodoUpdate && {
           onTodoUpdate: this.callbacks.onTodoUpdate,
