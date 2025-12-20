@@ -27,7 +27,7 @@ export function LiveResolution({
         <Text color="blue">{model}</Text>
       </Box>
 
-      {/* Render events in order - edit approval is now handled within ToolCallDisplay */}
+      {/* Render events in order - edit approval is now handled separately */}
       <EventList
         events={events}
         repoPath={repoPath}

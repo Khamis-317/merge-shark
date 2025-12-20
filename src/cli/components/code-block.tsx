@@ -1,7 +1,6 @@
 import chalk from 'chalk';
-import { highlight, type Theme } from 'cli-highlight';
+import { highlight, supportsLanguage, type Theme } from 'cli-highlight';
 import { Text } from 'ink';
-import { useMemo } from 'react';
 
 /** A simplified GitHub Dark theme. Works well for light mode too. */
 const theme: Theme = {
@@ -48,11 +47,9 @@ export interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, language }: CodeBlockProps) {
-  const codeWithLineNumbers = useMemo(() => {
-    const highlightedCode = highlight(code, { language, theme });
-
-    return highlightedCode;
-  }, [code, language]);
+  const codeWithLineNumbers = supportsLanguage(language)
+    ? highlight(code, { language, theme })
+    : code;
 
   return <Text>{codeWithLineNumbers}</Text>;
 }

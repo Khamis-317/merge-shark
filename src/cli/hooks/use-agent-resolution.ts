@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/index.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
 import type { EditApprovalResult } from '../../utils/tool-context.js';
+import type { TodoItem } from '../../tools/manage-todo.js';
 
 export type ToolState =
   | { status: 'running' | 'complete' | 'failed' }
@@ -28,6 +29,10 @@ export type StreamEvent =
       input: unknown;
       output: unknown | null;
       state: ToolState;
+    }
+  | {
+      type: 'todo';
+      todos: TodoItem[];
     };
 
 export type AgentStatus =
@@ -41,10 +46,10 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
   const [status, setStatus] = useState<AgentStatus>('resolving');
   const [edits, setEdits] = useState<FileEditOptions[]>([]);
   const [error, setError] = useState<Error | null>(null);
-  const [pendingEdit, setPendingEdit] = useState<FileEditOptions | null>(null);
   const [editResolver, setEditResolver] = useState<
     ((result: EditApprovalResult) => void) | null
   >(null);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
 
   useEffect(() => {
     // Set up callbacks
@@ -171,9 +176,23 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
 
         // Return a promise that will be resolved when the user approves/rejects
         return new Promise<EditApprovalResult>((resolve) => {
-          setPendingEdit(edit);
           setStatus('awaiting-approval');
           setEditResolver(() => resolve);
+        });
+      },
+
+      onTodoUpdate: (updatedTodos: TodoItem[]) => {
+        setTodos(updatedTodos);
+        setEvents((prev) => {
+          // Remove previous todo event if exists and add new one
+          const filteredEvents = prev.filter((e) => e.type !== 'todo');
+          return [
+            ...filteredEvents,
+            {
+              type: 'todo' as const,
+              todos: updatedTodos,
+            },
+          ];
         });
       },
     });
@@ -205,7 +224,6 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
   const handleApproveEdit = () => {
     if (editResolver) {
       editResolver({ approved: true });
-      setPendingEdit(null);
       setEditResolver(null);
       setStatus('resolving');
     }
@@ -214,7 +232,6 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
   const handleRejectEdit = (feedback?: string) => {
     if (editResolver) {
       editResolver({ approved: false, feedback: feedback });
-      setPendingEdit(null);
       setEditResolver(null);
       setStatus('resolving');
     }
@@ -225,7 +242,7 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
     status,
     edits,
     error,
-    pendingEdit,
+    todos,
     onApproveEdit: handleApproveEdit,
     onRejectEdit: handleRejectEdit,
   };

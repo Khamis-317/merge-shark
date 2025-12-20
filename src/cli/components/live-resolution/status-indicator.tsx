@@ -25,6 +25,8 @@ function isInProgress(event?: StreamEvent) {
       return !event.isComplete;
     case 'tool':
       return event.state.status === 'running';
+    case 'todo':
+      return false;
   }
 }
 

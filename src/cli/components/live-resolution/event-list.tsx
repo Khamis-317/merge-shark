@@ -1,7 +1,9 @@
 import { Markdown } from '../markdown.js';
 import { ThinkingBlock } from '../thinking-block.js';
 import { ToolCallDisplay } from '../tool-call-display.js';
+import { TodoList } from '../todo-list.js';
 import type { StreamEvent } from '../../hooks/use-agent-resolution.js';
+import invariant from 'tiny-invariant';
 
 interface EventListProps {
   events: StreamEvent[];
@@ -49,8 +51,14 @@ export function EventList({
               />
             );
 
+          case 'todo':
+            // Avoid rendering consecutive todo lists
+            if (index !== 0 && events[index - 1]!.type === 'todo') return null;
+
+            return <TodoList key={key} todos={event.todos} />;
+
           default:
-            return null;
+            invariant(false, `Unknown event: ${event}`);
         }
       })}
     </>
