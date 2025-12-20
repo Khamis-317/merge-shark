@@ -33,16 +33,16 @@ export const models: Record<string, Model> = {
     factory: openRouterModelFactory('anthropic/claude-sonnet-4.5'),
   },
   'kimi-k2': {
+    name: 'Kimi K2 0905',
+    factory: openRouterModelFactory('moonshotai/kimi-k2-0905'),
+  },
+  'kimi-k2-thinking': {
     name: 'Kimi K2 Thinking',
     factory: openRouterModelFactory('moonshotai/kimi-k2-thinking'),
   },
   'minimax-m2': {
     name: 'Minimax M2',
     factory: openRouterModelFactory('minimax/minimax-m2'),
-  },
-  'grok-code-fast-1': {
-    name: 'Grok Code Fast 1',
-    factory: openRouterModelFactory('x-ai/grok-code-fast-1'),
   },
   'glm-4.6': {
     name: 'GLM 4.6',
