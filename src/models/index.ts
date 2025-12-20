@@ -32,10 +32,6 @@ export const models: Record<string, Model> = {
     name: 'Claude 4.5 Sonnet',
     factory: openRouterModelFactory('anthropic/claude-sonnet-4.5'),
   },
-  'kimi-k2': {
-    name: 'Kimi K2 0905',
-    factory: openRouterModelFactory('moonshotai/kimi-k2-0905'),
-  },
   'kimi-k2-thinking': {
     name: 'Kimi K2 Thinking',
     factory: openRouterModelFactory('moonshotai/kimi-k2-thinking'),
@@ -46,6 +42,6 @@ export const models: Record<string, Model> = {
   },
   'glm-4.6': {
     name: 'GLM 4.6',
-    factory: openRouterModelFactory('z-ai/glm-4.6'),
+    factory: openRouterModelFactory('z-ai/glm-4.6:exacto'),
   },
 };
