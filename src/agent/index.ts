@@ -34,7 +34,6 @@ import { z } from 'zod';
 
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
-import { appendFile } from 'node:fs/promises';
 import type {
   BinaryOperatorAggregate,
   Messages,
@@ -47,10 +46,6 @@ export type StreamTextChunk = {
   id: string;
   text: string;
 };
-
-function chunkLog(chunk: unknown) {
-  appendFile('output.log', JSON.stringify(chunk, null, 2) + '\n');
-}
 
 export interface ConflictAgentCallbacks {
   onMessageChunk?: (chunk: StreamTextChunk) => void;
@@ -173,7 +168,6 @@ export class ConflictResolutionAgent {
     );
 
     for await (const [mode, chunk] of stream) {
-      chunkLog({ mode, chunk });
       if (mode === 'updates') {
         this.handleStreamUpdate(chunk);
       } else {
@@ -221,9 +215,7 @@ export class ConflictResolutionAgent {
         this.handleToolCalls(toolCalls);
       }
     } catch (e) {
-      chunkLog(
-        `Failed to parse agent messages: ${e} ${JSON.stringify(agentUpdate.messages, null, 2)}`
-      );
+      console.error('Failed to parse agent update messages:', e);
     }
   }
 
