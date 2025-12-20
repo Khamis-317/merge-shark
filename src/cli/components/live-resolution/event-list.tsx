@@ -8,15 +8,15 @@ import invariant from 'tiny-invariant';
 interface EventListProps {
   events: StreamEvent[];
   repoPath: string;
-  onApproveEdit: () => void;
-  onRejectEdit: (feedback?: string) => void;
+  onApprove: () => void;
+  onReject: (feedback?: string) => void;
 }
 
 export function EventList({
   events,
   repoPath,
-  onApproveEdit,
-  onRejectEdit,
+  onApprove,
+  onReject,
 }: EventListProps) {
   return (
     <>
@@ -46,8 +46,8 @@ export function EventList({
                 output={event.output}
                 state={event.state}
                 repoPath={repoPath}
-                onApproveEdit={onApproveEdit}
-                onRejectEdit={onRejectEdit}
+                onApprove={onApprove}
+                onReject={onReject}
               />
             );
 

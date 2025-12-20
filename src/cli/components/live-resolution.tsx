@@ -1,24 +1,20 @@
 import { Box, Text } from 'ink';
-import { ConflictResolutionAgent } from '../../agent/index.js';
 import { useAgentResolution } from '../hooks/use-agent-resolution.js';
 import { Header } from './live-resolution/header.js';
 import { EventList } from './live-resolution/event-list.js';
 import { StatusIndicator } from './live-resolution/status-indicator.js';
 import { ErrorDisplay } from './live-resolution/error-display.js';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
 
 export interface LiveResolutionProps {
-  agent: ConflictResolutionAgent;
   repoPath: string;
+  llm: LanguageModelLike;
   model: string;
 }
 
-export function LiveResolution({
-  agent,
-  repoPath,
-  model,
-}: LiveResolutionProps) {
-  const { events, status, edits, error, onApproveEdit, onRejectEdit } =
-    useAgentResolution(agent);
+export function LiveResolution({ repoPath, llm, model }: LiveResolutionProps) {
+  const { events, status, edits, error, onApprove, onReject } =
+    useAgentResolution({ repoPath, llm });
 
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">
@@ -31,8 +27,8 @@ export function LiveResolution({
       <EventList
         events={events}
         repoPath={repoPath}
-        onApproveEdit={onApproveEdit}
-        onRejectEdit={onRejectEdit}
+        onApprove={onApprove}
+        onReject={onReject}
       />
 
       {/* Progress indicator */}

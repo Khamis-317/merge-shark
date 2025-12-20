@@ -82,6 +82,8 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Read referenced files involved in the conflict.
       - CRITICAL: If a file imports another file that is relevant to the conflict, read that file.
       - CRITICAL: If a config file extends another config file relevant to the conflict, read the extended config file.
+    - Use the 'bash' tool to run checks (e.g. building, linting, etc) to verify your resolution.
+    - When searching the codebase with search tools (e.g. read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
     </resolution_guidelines>
     <resolution_format>
 

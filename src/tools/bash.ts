@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { exec } from '../utils/exec.js';
 import { dedent } from '../utils/dedent.js';
 import type { ExecException } from 'node:child_process';
+import type { ToolContext } from '../utils/tool-context.js';
 
 const bashInputSchema = z.object({
   command: z.string(),
@@ -10,9 +11,65 @@ const bashInputSchema = z.object({
 
 export type BashToolInput = z.infer<typeof bashInputSchema>;
 
-export function makeBashTool(repoPath: string) {
+/**
+ * List of git read-only commands that don't need approval.
+ * These commands only read data and don't modify the repository state.
+ */
+const GIT_READ_COMMANDS = [
+  'git log',
+  'git diff',
+  'git show',
+  'git status',
+  'git branch',
+  'git tag',
+  'git describe',
+  'git rev-parse',
+  'git ls-files',
+  'git ls-tree',
+  'git cat-file',
+  'git blame',
+  'git shortlog',
+  'git reflog',
+  'git config --get',
+  'git config --list',
+  'git remote -v',
+  'git remote show',
+  'git stash list',
+  'git rev-list',
+  'git name-rev',
+  'git for-each-ref',
+  'git count-objects',
+  'git fsck',
+  'git verify-commit',
+  'git verify-tag',
+];
+
+/**
+ * Checks if a command is a git read-only command that doesn't need approval.
+ */
+function isGitReadCommand(command: string): boolean {
+  const trimmedCommand = command.trim();
+  return GIT_READ_COMMANDS.some(
+    (gitCmd) =>
+      trimmedCommand === gitCmd || trimmedCommand.startsWith(gitCmd + ' ')
+  );
+}
+
+export function makeBashTool(repoPath: string, context: ToolContext) {
   return tool(
     async ({ command }) => {
+      // Check if the command needs approval
+      if (!isGitReadCommand(command)) {
+        const result = await context.onBashRequested({ command });
+
+        if (!result.approved) {
+          const message = result.feedback
+            ? `Command rejected by user. User feedback: ${result.feedback}`
+            : 'Command rejected by user. Consider another approach instead.';
+          throw new Error(message);
+        }
+      }
+
       try {
         const { stdout, stderr } = await exec(command, { cwd: repoPath });
 

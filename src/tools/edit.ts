@@ -44,15 +44,13 @@ export function makeEditTool(
         replaceAll,
       };
 
-      if (context.onEditRequested) {
-        const result = await context.onEditRequested(fileEdit);
+      const result = await context.onEditRequested(fileEdit);
 
-        if (!result.approved) {
-          const message = result.feedback
-            ? `Edit rejected by user. User feedback: ${result.feedback}`
-            : 'Edit rejected by user. Consider another edit instead.';
-          throw new Error(message);
-        }
+      if (!result.approved) {
+        const message = result.feedback
+          ? `Edit rejected by user. User feedback: ${result.feedback}`
+          : 'Edit rejected by user. Consider another edit instead.';
+        throw new Error(message);
       }
 
       // Apply the edit

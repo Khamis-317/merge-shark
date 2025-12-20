@@ -35,12 +35,12 @@ const manageTodoInputSchema = z.object({
 export type ManageTodoInput = z.infer<typeof manageTodoInputSchema>;
 
 export interface TodoCallbacks {
-  onTodoUpdate?: (todos: TodoItem[]) => void;
+  onTodoUpdate: (todos: TodoItem[]) => void;
 }
 
 export const MANAGE_TODO_TOOL_NAME = 'manage_todo_list';
 
-export function makeManageTodoTool(callbacks: TodoCallbacks = {}) {
+export function makeManageTodoTool(callbacks: TodoCallbacks) {
   let todoList: TodoItem[] = [];
 
   return tool(
@@ -79,9 +79,7 @@ export function makeManageTodoTool(callbacks: TodoCallbacks = {}) {
       todoList = newTodoList;
 
       // Notify callbacks
-      if (callbacks.onTodoUpdate) {
-        callbacks.onTodoUpdate([...todoList]);
-      }
+      callbacks.onTodoUpdate([...todoList]);
 
       const completedCount = todoList.filter(
         (todo) => todo.status === 'completed'

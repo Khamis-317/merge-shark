@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/index.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
-import type { EditApprovalResult } from '../../utils/tool-context.js';
+import type {
+  ApprovalResult,
+  BashCommandRequest,
+} from '../../utils/tool-context.js';
 import type { TodoItem } from '../../tools/manage-todo.js';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
 
 export type ToolState =
   | { status: 'running' | 'complete' | 'failed' }
-  | { status: 'awaiting-approval'; edit: FileEditOptions };
+  | { status: 'awaiting-edit-approval'; edit: FileEditOptions }
+  | { status: 'awaiting-bash-approval'; request: BashCommandRequest };
 
 // Event types for the unified stream
 export type StreamEvent =
@@ -41,19 +46,26 @@ export type AgentStatus =
   | 'reviewing'
   | 'awaiting-approval';
 
-export function useAgentResolution(agent: ConflictResolutionAgent) {
+export interface UseAgentResolutionOptions {
+  repoPath: string;
+  llm: LanguageModelLike;
+}
+
+export function useAgentResolution({
+  repoPath,
+  llm,
+}: UseAgentResolutionOptions) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [status, setStatus] = useState<AgentStatus>('resolving');
   const [edits, setEdits] = useState<FileEditOptions[]>([]);
   const [error, setError] = useState<Error | null>(null);
-  const [editResolver, setEditResolver] = useState<
-    ((result: EditApprovalResult) => void) | null
+  const [approvalResolver, setApprovalResolver] = useState<
+    ((result: ApprovalResult) => void) | null
   >(null);
   const [todos, setTodos] = useState<TodoItem[]>([]);
 
   useEffect(() => {
-    // Set up callbacks
-    agent.setCallbacks({
+    const agent = new ConflictResolutionAgent(repoPath, llm, {
       onMessageChunk: (chunk) => {
         setEvents((prev) => {
           const existingIndex = prev.findIndex(
@@ -169,15 +181,38 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
             ...prev.slice(0, lastIndex),
             {
               ...lastEvent,
-              state: { status: 'awaiting-approval', edit },
+              state: { status: 'awaiting-edit-approval', edit },
             },
           ];
         });
 
         // Return a promise that will be resolved when the user approves/rejects
-        return new Promise<EditApprovalResult>((resolve) => {
+        return new Promise<ApprovalResult>((resolve) => {
           setStatus('awaiting-approval');
-          setEditResolver(() => resolve);
+          setApprovalResolver(() => resolve);
+        });
+      },
+
+      onBashRequested: async (request) => {
+        setEvents((prev) => {
+          const lastIndex = prev.length - 1;
+          const lastEvent = prev[lastIndex];
+
+          if (!lastEvent || lastEvent.type !== 'tool') return prev;
+
+          return [
+            ...prev.slice(0, lastIndex),
+            {
+              ...lastEvent,
+              state: { status: 'awaiting-bash-approval', request },
+            },
+          ];
+        });
+
+        // Return a promise that will be resolved when the user approves/rejects
+        return new Promise<ApprovalResult>((resolve) => {
+          setStatus('awaiting-approval');
+          setApprovalResolver(() => resolve);
         });
       },
 
@@ -219,20 +254,20 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
     };
 
     runAgent();
-  }, [agent]);
+  }, [repoPath, llm]);
 
-  const handleApproveEdit = () => {
-    if (editResolver) {
-      editResolver({ approved: true });
-      setEditResolver(null);
+  const handleApprove = () => {
+    if (approvalResolver) {
+      approvalResolver({ approved: true });
+      setApprovalResolver(null);
       setStatus('resolving');
     }
   };
 
-  const handleRejectEdit = (feedback?: string) => {
-    if (editResolver) {
-      editResolver({ approved: false, feedback: feedback });
-      setEditResolver(null);
+  const handleReject = (feedback?: string) => {
+    if (approvalResolver) {
+      approvalResolver({ approved: false, feedback: feedback });
+      setApprovalResolver(null);
       setStatus('resolving');
     }
   };
@@ -243,7 +278,7 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
     edits,
     error,
     todos,
-    onApproveEdit: handleApproveEdit,
-    onRejectEdit: handleRejectEdit,
+    onApprove: handleApprove,
+    onReject: handleReject,
   };
 }
