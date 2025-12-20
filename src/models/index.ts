@@ -44,4 +44,12 @@ export const models: Record<string, Model> = {
     name: 'GLM 4.6',
     factory: openRouterModelFactory('z-ai/glm-4.6:exacto'),
   },
+  'devstral-2-free': {
+    name: 'Devstral 2 Free',
+    factory: openRouterModelFactory('mistralai/devstral-2512:free'),
+  },
+  'devstral-2': {
+    name: 'Devstral 2',
+    factory: openRouterModelFactory('mistralai/devstral-2512'),
+  },
 };
