@@ -78,6 +78,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </conflict_format>
     <resolution_guidelines>
     - Read the changes and make sure you understand WHY each change was introduced before making any edits. Use the 'read' and 'bash' tools to understand the codebase and the history. You can use 'bash' to run git commands like 'git blame', 'git diff', 'git log', etc.
+    - PREFER builtin tools (read, ripgrep, glob, ls) for searching and reading files over using 'bash' commands like 'cat', 'grep', 'find', etc.
     - IMPORTANT: Don't combine both changes into one. Understand why both changes were introduced. Code might have been moved or removed altogether.
     - Read referenced files involved in the conflict.
       - CRITICAL: If a file imports another file that is relevant to the conflict, read that file.
