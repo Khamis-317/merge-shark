@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/index.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
+import type { EditApprovalResult } from '../../utils/tool-context.js';
 
 export type ToolState =
   | { status: 'running' | 'complete' | 'failed' }
@@ -42,7 +43,7 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
   const [error, setError] = useState<Error | null>(null);
   const [pendingEdit, setPendingEdit] = useState<FileEditOptions | null>(null);
   const [editResolver, setEditResolver] = useState<
-    ((result: boolean) => void) | null
+    ((result: EditApprovalResult) => void) | null
   >(null);
 
   useEffect(() => {
@@ -169,7 +170,7 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
         });
 
         // Return a promise that will be resolved when the user approves/rejects
-        return new Promise<boolean>((resolve) => {
+        return new Promise<EditApprovalResult>((resolve) => {
           setPendingEdit(edit);
           setStatus('awaiting-approval');
           setEditResolver(() => resolve);
@@ -203,16 +204,16 @@ export function useAgentResolution(agent: ConflictResolutionAgent) {
 
   const handleApproveEdit = () => {
     if (editResolver) {
-      editResolver(true);
+      editResolver({ approved: true });
       setPendingEdit(null);
       setEditResolver(null);
       setStatus('resolving');
     }
   };
 
-  const handleRejectEdit = () => {
+  const handleRejectEdit = (feedback?: string) => {
     if (editResolver) {
-      editResolver(false);
+      editResolver({ approved: false, feedback: feedback });
       setPendingEdit(null);
       setEditResolver(null);
       setStatus('resolving');

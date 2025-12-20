@@ -36,6 +36,7 @@ import type {
   UpdateType,
 } from '@langchain/langgraph';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
+import type { EditApprovalResult } from '../utils/tool-context.js';
 
 export type StreamTextChunk = {
   id: string;
@@ -60,7 +61,7 @@ export interface ConflictAgentCallbacks {
     callId?: string;
     isError?: boolean;
   }) => void;
-  onEditRequested?: (edit: FileEditOptions) => Promise<boolean>;
+  onEditRequested?: (edit: FileEditOptions) => Promise<EditApprovalResult>;
 }
 
 export class ConflictResolutionAgent {
