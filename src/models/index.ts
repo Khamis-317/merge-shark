@@ -40,9 +40,9 @@ export const models: Record<string, Model> = {
     name: 'Minimax M2',
     factory: openRouterModelFactory('minimax/minimax-m2'),
   },
-  'glm-4.6': {
-    name: 'GLM 4.6',
-    factory: openRouterModelFactory('z-ai/glm-4.6:exacto'),
+  'glm-4.7': {
+    name: 'GLM 4.7',
+    factory: openRouterModelFactory('z-ai/glm-4.7'),
   },
   'devstral-2-free': {
     name: 'Devstral 2 Free',
