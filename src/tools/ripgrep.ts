@@ -9,20 +9,22 @@ const ripgrepInputSchema = z.object({
   pattern: z.string(),
   caseSensitive: z.boolean().optional(),
   ignored: z.array(z.string()).optional(),
+  linesBeforeAndAfter: z.number().default(0),
 });
 
 export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
 
 export function makeRipgrepTool(repoPath: string) {
   return tool(
-    async ({ searchPath, pattern, caseSensitive = false, ignored }) => {
+    async ({ searchPath, pattern, caseSensitive = false, ignored, linesBeforeAndAfter }) => {
       const absolutePath = path.resolve(repoPath, searchPath);
       const grepResults = await ripgrep(
         repoPath,
         absolutePath,
         pattern,
         caseSensitive,
-        ignored
+        ignored,
+        linesBeforeAndAfter
       );
       return grepResults.join('\n');
     },
@@ -32,8 +34,9 @@ export function makeRipgrepTool(repoPath: string) {
         Searches for a pattern in files within the specified path using ripgrep.
         This tool is useful for finding specific text or code snippets in the codebase.
         Provide a relative path to the directory you want to search (e.g., "src" or "./src/utils") and the text pattern to search for.
-        You can also specify whether the search should be case sensitive and provide an array of glob patterns to ignore certain files or directories.
-        Output is lines containing the pattern, prefixed by file absolute path and line number separated by a colon (e.g,-when grepping for 'await' "absolute/path/to/file.ts:66:    const result = await foo();").
+        You can also specify whether or not the search should be case sensitive, provide an array of glob patterns to ignore certain files or directories prefixed with '!'.
+        You can also specify the number of lines to show before and after the match to provide a clearer context.
+        Output is lines containing the pattern, prefixed by file absolute path and line number separated by a colon (e.g- when grepping for 'await' "absolute/path/to/file.ts:66:    const result = await foo();").
         `,
       schema: ripgrepInputSchema,
     }
