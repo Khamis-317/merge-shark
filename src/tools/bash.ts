@@ -71,7 +71,10 @@ export function makeBashTool(repoPath: string, context: ToolContext) {
       }
 
       try {
-        const { stdout, stderr } = await exec(command, { cwd: repoPath });
+        const { stdout, stderr } = await exec(command, {
+          cwd: repoPath,
+          env: { ...process.env, GIT_EDITOR: 'true' },
+        });
 
         if (stdout && stderr) {
           return dedent`
