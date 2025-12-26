@@ -10,11 +10,17 @@ export interface LiveResolutionProps {
   repoPath: string;
   llm: LanguageModelLike;
   model: string;
+  yolo: boolean;
 }
 
-export function LiveResolution({ repoPath, llm, model }: LiveResolutionProps) {
+export function LiveResolution({
+  repoPath,
+  llm,
+  model,
+  yolo = false,
+}: LiveResolutionProps) {
   const { events, status, edits, error, onApprove, onReject } =
-    useAgentResolution({ repoPath, llm });
+    useAgentResolution({ repoPath, llm, yolo });
 
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">

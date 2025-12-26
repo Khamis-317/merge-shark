@@ -49,11 +49,13 @@ export type AgentStatus =
 export interface UseAgentResolutionOptions {
   repoPath: string;
   llm: LanguageModelLike;
+  yolo?: boolean;
 }
 
 export function useAgentResolution({
   repoPath,
   llm,
+  yolo = false,
 }: UseAgentResolutionOptions) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [status, setStatus] = useState<AgentStatus>('resolving');
@@ -171,6 +173,11 @@ export function useAgentResolution({
       },
 
       onEditRequested: async (edit) => {
+        // Auto-approve in yolo mode
+        if (yolo) {
+          return { approved: true };
+        }
+
         setEvents((prev) => {
           const lastIndex = prev.length - 1;
           const lastEvent = prev[lastIndex];
@@ -194,6 +201,11 @@ export function useAgentResolution({
       },
 
       onBashRequested: async (request) => {
+        // Auto-approve in yolo mode
+        if (yolo) {
+          return { approved: true };
+        }
+
         setEvents((prev) => {
           const lastIndex = prev.length - 1;
           const lastEvent = prev[lastIndex];
