@@ -9,8 +9,8 @@ const ripgrepInputSchema = z.object({
   pattern: z.string(),
   caseSensitive: z.boolean().optional(),
   ignored: z.array(z.string()).optional(),
-  linesBefore: z.number().default(0),
-  linesAfter: z.number().default(0),
+  linesBefore: z.number().nonnegative().default(0),
+  linesAfter: z.number().nonnegative().default(0),
 });
 
 export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
