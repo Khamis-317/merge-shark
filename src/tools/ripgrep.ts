@@ -16,7 +16,13 @@ export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
 
 export function makeRipgrepTool(repoPath: string) {
   return tool(
-    async ({ searchPath, pattern, caseSensitive = false, ignored, linesBeforeAndAfter }) => {
+    async ({
+      searchPath,
+      pattern,
+      caseSensitive = false,
+      ignored,
+      linesBeforeAndAfter,
+    }) => {
       const absolutePath = path.resolve(repoPath, searchPath);
       const grepResults = await ripgrep(
         repoPath,
