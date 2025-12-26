@@ -9,7 +9,8 @@ const ripgrepInputSchema = z.object({
   pattern: z.string(),
   caseSensitive: z.boolean().optional(),
   ignored: z.array(z.string()).optional(),
-  linesBeforeAndAfter: z.number().default(0),
+  linesBefore: z.number().default(0),
+  linesAfter: z.number().default(0),
 });
 
 export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
@@ -21,7 +22,8 @@ export function makeRipgrepTool(repoPath: string) {
       pattern,
       caseSensitive = false,
       ignored,
-      linesBeforeAndAfter,
+      linesBefore,
+      linesAfter,
     }) => {
       const absolutePath = path.resolve(repoPath, searchPath);
       const grepResults = await ripgrep(
@@ -30,7 +32,8 @@ export function makeRipgrepTool(repoPath: string) {
         pattern,
         caseSensitive,
         ignored,
-        linesBeforeAndAfter
+        linesBefore,
+        linesAfter
       );
       return grepResults.join('\n');
     },
