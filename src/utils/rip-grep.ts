@@ -6,7 +6,9 @@ function rgSearch(
   path: string,
   pattern: string,
   caseSensitive: boolean,
-  ignored: string[] | undefined
+  ignored: string[] | undefined,
+  linesBefore: number,
+  linesAfter: number
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     let args = [`-H`, '-n', pattern, path];
@@ -18,6 +20,9 @@ function rgSearch(
         args.push('--glob', ignoredPattern);
       });
     }
+    args.push(`-B`, linesBefore.toString());
+    args.push(`-A`, linesAfter.toString());
+
     const rg = spawn(rgPath, args, {
       cwd: currentWorkingDir,
     });
@@ -32,8 +37,12 @@ function rgSearch(
       errorOutput += data.toString();
     });
 
+    if (output.length === 0) {
+      output = 'No results found';
+    }
+
     rg.on('close', (code) => {
-      if (code === 0) {
+      if (code === 0 || code === 1) {
         resolve(output);
       } else {
         reject(
@@ -59,14 +68,18 @@ export async function ripgrep(
   searchPath: string,
   pattern: string,
   caseSensitive = false,
-  ignored?: string[]
+  ignored?: string[],
+  linesBefore = 0,
+  linesAfter = 0
 ): Promise<string[]> {
   const result = await rgSearch(
     repoPath,
     searchPath,
     pattern,
     caseSensitive,
-    ignored
+    ignored,
+    linesBefore,
+    linesAfter
   );
   return result.split('\n').filter((line) => line.trim() !== '');
 }
