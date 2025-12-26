@@ -36,7 +36,7 @@ function rgSearch(
     });
 
     rg.on('close', (code) => {
-      if (code === 0 || errorOutput.length === 0) {
+      if (code === 0 || code === 1) {
         resolve(output);
       } else {
         reject(
