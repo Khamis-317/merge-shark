@@ -54,7 +54,7 @@ function rgSearch(
 }
 
 /**
- * @param repoPath is need for setting the cwd for process which runs ripgrep
+ * @param repoPath is needed for setting the cwd for process which runs ripgrep
  * @param searchPath is the path within the repo to search
  * @param pattern or a text to be searched for
  * @param caseSensitive whether the search should be case sensitive or not @default false
