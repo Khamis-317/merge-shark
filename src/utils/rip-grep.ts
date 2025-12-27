@@ -66,7 +66,7 @@ function rgSearch(
 
 export async function ripgrep(
   repoPath: string,
-  searchPath: string,
+  searchPath = `.`,
   pattern: string,
   caseSensitive = false,
   ignored?: string[],
