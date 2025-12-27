@@ -54,12 +54,13 @@ function rgSearch(
 }
 
 /**
- *
  * @param repoPath is need for setting the cwd for process which runs ripgrep
  * @param searchPath is the path within the repo to search
  * @param pattern or a text to be searched for
- * @param caseSensitive whether the search should be case sensitive or not
- * @param ignored is an optional array of glob patterns to ignore certain files or directories
+ * @param caseSensitive whether the search should be case sensitive or not @default false
+ * @param ignored is an optional array of glob patterns to ignore certain files or directories @default []
+ * @param linesBefore number of lines to show before the match @default 0
+ * @param linesAfter number of lines to show after the match @default 0
  * @returns An array of strings, each representing a line from the ripgrep output.
  */
 

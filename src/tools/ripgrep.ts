@@ -7,7 +7,7 @@ import { dedent } from '../utils/dedent.js';
 const ripgrepInputSchema = z.object({
   searchPath: z.string(),
   pattern: z.string(),
-  caseSensitive: z.boolean().optional(),
+  caseSensitive: z.boolean().default(false),
   ignored: z.array(z.string()).optional(),
   linesBefore: z.number().nonnegative().default(0),
   linesAfter: z.number().nonnegative().default(0),
@@ -20,7 +20,7 @@ export function makeRipgrepTool(repoPath: string) {
     async ({
       searchPath,
       pattern,
-      caseSensitive = false,
+      caseSensitive,
       ignored,
       linesBefore,
       linesAfter,
