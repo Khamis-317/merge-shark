@@ -6,10 +6,11 @@ import {
   AIMessageChunk,
   BaseMessage,
   ToolMessage,
-  DynamicStructuredTool,
   type ContentBlock,
   type ToolCall,
 } from 'langchain';
+import { StructuredTool } from '@langchain/core/tools';
+import { TavilySearch } from '@langchain/tavily';
 import { makeEditTool } from '../tools/edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
@@ -100,8 +101,7 @@ export class ConflictResolutionAgent {
         'Merge info not available - this might be a rebase operation'
       );
     }
-
-    const tools: DynamicStructuredTool[] = [
+    const tools: StructuredTool[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
       makeLsTool(this.repoPath),
@@ -110,6 +110,9 @@ export class ConflictResolutionAgent {
       makeBashTool(this.repoPath, context),
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,
+      }),
+      new TavilySearch({
+        tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
       }),
     ];
 
