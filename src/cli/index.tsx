@@ -1,12 +1,18 @@
 import { render } from 'ink';
 import { LiveResolution } from './components/live-resolution.js';
-import { ConflictResolutionAgent } from '../agent/index.js';
 import type { Model } from '../models/index.js';
 
-export async function start(repoPath: string, model: Model) {
-  const agent = new ConflictResolutionAgent(repoPath, model.factory());
-
+export async function start(
+  repoPath: string,
+  model: Model,
+  yolo: boolean = false
+) {
   render(
-    <LiveResolution agent={agent} repoPath={repoPath} model={model.name} />
+    <LiveResolution
+      repoPath={repoPath}
+      llm={model.factory()}
+      model={model.name}
+      yolo={yolo}
+    />
   );
 }

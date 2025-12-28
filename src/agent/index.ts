@@ -15,11 +15,7 @@ import { makeEditTool } from '../tools/edit.js';
 import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
-import { makeGitBlameTool } from '../tools/git-blame.js';
-import { makeGitDiffTool } from '../tools/git-diff.js';
-import { makeGitLogTool } from '../tools/git-log.js';
-import { makeGetChangedFilesTool } from '../tools/get-changed-files.js';
-import { makeGetLastMergeCommitsTool } from '../tools/get-last-merge-commits.js';
+import { makeBashTool } from '../tools/bash.js';
 import {
   makeManageTodoTool,
   MANAGE_TODO_TOOL_NAME,
@@ -35,62 +31,50 @@ import { z } from 'zod';
 
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
-import { appendFile } from 'node:fs/promises';
 import type {
   BinaryOperatorAggregate,
   Messages,
   UpdateType,
 } from '@langchain/langgraph';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
-import type { EditApprovalResult } from '../utils/tool-context.js';
+import type {
+  ApprovalResult,
+  BashCommandRequest,
+} from '../utils/tool-context.js';
 
 export type StreamTextChunk = {
   id: string;
   text: string;
 };
 
-function chunkLog(chunk: unknown) {
-  appendFile('output.log', JSON.stringify(chunk, null, 2) + '\n');
-}
-
 export interface ConflictAgentCallbacks {
-  onMessageChunk?: (chunk: StreamTextChunk) => void;
-  onReasoningChunk?: (chunk: StreamTextChunk) => void;
-  onToolStart?: (info: {
+  onMessageChunk: (chunk: StreamTextChunk) => void;
+  onReasoningChunk: (chunk: StreamTextChunk) => void;
+  onToolStart: (info: {
     toolName: string;
     input: unknown;
     callId?: string | undefined;
   }) => void;
-  onToolEnd?: (info: {
+  onToolEnd: (info: {
     toolName: string;
     output: unknown;
     callId?: string;
     isError?: boolean;
   }) => void;
-  onEditRequested?: (edit: FileEditOptions) => Promise<EditApprovalResult>;
-  onTodoUpdate?: (todos: TodoItem[]) => void;
+  onEditRequested: (edit: FileEditOptions) => Promise<ApprovalResult>;
+  onBashRequested: (request: BashCommandRequest) => Promise<ApprovalResult>;
+  onTodoUpdate: (todos: TodoItem[]) => void;
 }
 
 export class ConflictResolutionAgent {
-  private callbacks: ConflictAgentCallbacks;
   private edits: FileEditOptions[] = [];
   private emittedToolCallIds = new Set<string>();
 
   constructor(
     private repoPath: string,
     private llm: LanguageModelLike,
-    callbacks: ConflictAgentCallbacks = {}
-  ) {
-    this.callbacks = callbacks;
-  }
-
-  setCallbacks(cb: ConflictAgentCallbacks) {
-    this.callbacks = { ...this.callbacks, ...cb };
-  }
-
-  getCallbacks(): ConflictAgentCallbacks {
-    return this.callbacks;
-  }
+    private callbacks: ConflictAgentCallbacks
+  ) {}
 
   getEdits(): FileEditOptions[] {
     return this.edits;
@@ -100,9 +84,8 @@ export class ConflictResolutionAgent {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
     const context: ToolContext = {
       readFiles: new Map(),
-      ...(this.callbacks.onEditRequested && {
-        onEditRequested: this.callbacks.onEditRequested,
-      }),
+      onEditRequested: this.callbacks.onEditRequested,
+      onBashRequested: this.callbacks.onBashRequested,
     };
     this.emittedToolCallIds.clear();
 
@@ -124,15 +107,9 @@ export class ConflictResolutionAgent {
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
-      makeGitBlameTool(this.repoPath),
-      makeGitDiffTool(this.repoPath),
-      makeGitLogTool(this.repoPath),
-      makeGetChangedFilesTool(this.repoPath),
-      makeGetLastMergeCommitsTool(this.repoPath),
+      makeBashTool(this.repoPath, context),
       makeManageTodoTool({
-        ...(this.callbacks.onTodoUpdate && {
-          onTodoUpdate: this.callbacks.onTodoUpdate,
-        }),
+        onTodoUpdate: this.callbacks.onTodoUpdate,
       }),
       new TavilySearch({
         tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
@@ -176,7 +153,6 @@ export class ConflictResolutionAgent {
     );
 
     for await (const [mode, chunk] of stream) {
-      chunkLog({ mode, chunk });
       if (mode === 'updates') {
         this.handleStreamUpdate(chunk);
       } else {
@@ -224,9 +200,7 @@ export class ConflictResolutionAgent {
         this.handleToolCalls(toolCalls);
       }
     } catch (e) {
-      chunkLog(
-        `Failed to parse agent messages: ${e} ${JSON.stringify(agentUpdate.messages, null, 2)}`
-      );
+      console.error('Failed to parse agent update messages:', e);
     }
   }
 
@@ -286,27 +260,25 @@ export class ConflictResolutionAgent {
 
     const isError = message.status !== 'success';
 
-    if (this.callbacks.onToolEnd) {
-      const info: {
-        toolName: string;
-        output: unknown;
-        callId?: string;
-        isError?: boolean;
-      } = {
-        toolName,
-        output,
-      };
+    const info: {
+      toolName: string;
+      output: unknown;
+      callId?: string;
+      isError?: boolean;
+    } = {
+      toolName,
+      output,
+    };
 
-      if (callId !== undefined) {
-        info.callId = callId;
-      }
-
-      if (isError) {
-        info.isError = true;
-      }
-
-      this.callbacks.onToolEnd(info);
+    if (callId) {
+      info.callId = callId;
     }
+
+    if (isError) {
+      info.isError = true;
+    }
+
+    this.callbacks.onToolEnd(info);
 
     if (callId) {
       this.emittedToolCallIds.delete(callId);
@@ -326,15 +298,13 @@ export class ConflictResolutionAgent {
         this.emittedToolCallIds.add(call.id);
       }
 
-      if (this.callbacks.onToolStart) {
-        const info = {
-          toolName: call.name,
-          input: call.args,
-          callId: call.id,
-        };
+      const info = {
+        toolName: call.name,
+        input: call.args,
+        callId: call.id,
+      };
 
-        this.callbacks.onToolStart(info);
-      }
+      this.callbacks.onToolStart(info);
     }
   }
 
@@ -343,11 +313,7 @@ export class ConflictResolutionAgent {
       return;
     }
 
-    const chunk = { id: messageId, text };
-
-    if (this.callbacks.onReasoningChunk) {
-      this.callbacks.onReasoningChunk(chunk);
-    }
+    this.callbacks.onReasoningChunk({ id: messageId, text });
   }
 
   private emitMessageChunk(messageId: string, text: string): void {
@@ -355,9 +321,7 @@ export class ConflictResolutionAgent {
       return;
     }
 
-    if (this.callbacks.onMessageChunk) {
-      this.callbacks.onMessageChunk({ id: messageId, text });
-    }
+    this.callbacks.onMessageChunk({ id: messageId, text });
   }
 
   private asNonEmptyString(value: unknown): string | null {

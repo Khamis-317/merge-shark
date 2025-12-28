@@ -14,11 +14,17 @@ const args = parseArgs({
       type: 'string',
       short: 'm',
     },
+    yolo: {
+      default: false,
+      type: 'boolean',
+      short: 'y',
+    },
   },
 });
 
 const model = models[args.values.model] ?? models['gemini-3-flash']!;
 
 const repoPath = args.values.repo;
+const yolo = args.values.yolo;
 
-await start(repoPath, model);
+await start(repoPath, model, yolo);

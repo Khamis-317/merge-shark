@@ -32,7 +32,7 @@ export const models: Record<string, Model> = {
     name: 'Claude 4.5 Sonnet',
     factory: openRouterModelFactory('anthropic/claude-sonnet-4.5'),
   },
-  'kimi-k2': {
+  'kimi-k2-thinking': {
     name: 'Kimi K2 Thinking',
     factory: openRouterModelFactory('moonshotai/kimi-k2-thinking'),
   },
@@ -40,12 +40,16 @@ export const models: Record<string, Model> = {
     name: 'Minimax M2',
     factory: openRouterModelFactory('minimax/minimax-m2'),
   },
-  'grok-code-fast-1': {
-    name: 'Grok Code Fast 1',
-    factory: openRouterModelFactory('x-ai/grok-code-fast-1'),
+  'glm-4.7': {
+    name: 'GLM 4.7',
+    factory: openRouterModelFactory('z-ai/glm-4.7'),
   },
-  'glm-4.6': {
-    name: 'GLM 4.6',
-    factory: openRouterModelFactory('z-ai/glm-4.6'),
+  'devstral-2-free': {
+    name: 'Devstral 2 Free',
+    factory: openRouterModelFactory('mistralai/devstral-2512:free'),
+  },
+  'devstral-2': {
+    name: 'Devstral 2',
+    factory: openRouterModelFactory('mistralai/devstral-2512'),
   },
 };

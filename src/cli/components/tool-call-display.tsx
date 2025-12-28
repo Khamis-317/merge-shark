@@ -1,5 +1,6 @@
 import { ToolSummary } from './tool-summary.js';
 import { EditApproval } from './edit-approval.js';
+import { BashApproval } from './bash-approval.js';
 import invariant from 'tiny-invariant';
 import type { ToolState } from '../hooks/use-agent-resolution.js';
 
@@ -9,8 +10,8 @@ export type ToolCallDisplayProps = {
   output: unknown;
   repoPath: string;
   state: ToolState;
-  onApproveEdit: () => void;
-  onRejectEdit: (feedback?: string) => void;
+  onApprove: () => void;
+  onReject: (feedback?: string) => void;
 };
 
 export function ToolCallDisplay({
@@ -19,10 +20,10 @@ export function ToolCallDisplay({
   output,
   repoPath,
   state,
-  onApproveEdit,
-  onRejectEdit,
+  onApprove,
+  onReject,
 }: ToolCallDisplayProps) {
-  if (state.status === 'awaiting-approval') {
+  if (state.status === 'awaiting-edit-approval') {
     invariant(
       toolName === 'edit' || toolName === 'multiedit',
       'Edit approval can only be requested for edit or multiedit tools'
@@ -32,8 +33,23 @@ export function ToolCallDisplay({
       <EditApproval
         repoPath={repoPath}
         edit={state.edit}
-        onApprove={onApproveEdit}
-        onReject={onRejectEdit}
+        onApprove={onApprove}
+        onReject={onReject}
+      />
+    );
+  }
+
+  if (state.status === 'awaiting-bash-approval') {
+    invariant(
+      toolName === 'bash',
+      'Bash approval can only be requested for bash tool'
+    );
+
+    return (
+      <BashApproval
+        request={state.request}
+        onApprove={onApprove}
+        onReject={onReject}
       />
     );
   }
