@@ -4,12 +4,12 @@ import { ripgrep } from '../utils/rip-grep.js';
 import { dedent } from '../utils/dedent.js';
 
 const ripgrepInputSchema = z.object({
-  searchPath: z.string().default(`.`),
   pattern: z.string(),
+  searchPath: z.string().default('.'),
   caseSensitive: z.boolean().default(false),
-  ignored: z.array(z.string()).optional(),
   linesBefore: z.number().nonnegative().default(0),
   linesAfter: z.number().nonnegative().default(0),
+  ignored: z.array(z.string()).optional(),
 });
 
 export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
@@ -17,21 +17,21 @@ export type RipgrepToolInput = z.infer<typeof ripgrepInputSchema>;
 export function makeRipgrepTool(repoPath: string) {
   return tool(
     async ({
-      searchPath,
       pattern,
+      searchPath,
       caseSensitive,
-      ignored,
       linesBefore,
       linesAfter,
+      ignored,
     }) => {
       const grepResults = await ripgrep(
         repoPath,
-        searchPath,
         pattern,
+        searchPath,
         caseSensitive,
-        ignored,
         linesBefore,
-        linesAfter
+        linesAfter,
+        ignored
       );
       return grepResults.join('\n');
     },

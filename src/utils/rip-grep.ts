@@ -3,17 +3,17 @@ import { spawn } from 'child_process';
 
 function rgSearch(
   currentWorkingDir: string,
-  path: string,
   pattern: string,
+  path: string,
   caseSensitive: boolean,
-  ignored: string[] | undefined,
   linesBefore: number,
-  linesAfter: number
+  linesAfter: number,
+  ignored?: string[]
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    let args = [`-H`, '-n', pattern, path];
+    const args = [`-H`, '-n', pattern, path];
     if (!caseSensitive) {
-      args = ['-i', ...args];
+      args.push('-i');
     }
     if (ignored && ignored.length > 0) {
       ignored.forEach((ignoredPattern) => {
@@ -55,32 +55,32 @@ function rgSearch(
 
 /**
  * @param repoPath is needed for setting the cwd for process which runs ripgrep
- * @param searchPath is the path within the repo to search
  * @param pattern or a text to be searched for
+ * @param searchPath is the path within the repo to search @default '.' i.e. current directory
  * @param caseSensitive whether the search should be case sensitive or not @default false
- * @param ignored is an optional array of glob patterns to ignore certain files or directories @default []
  * @param linesBefore number of lines to show before the match @default 0
  * @param linesAfter number of lines to show after the match @default 0
+ * @param ignored is an optional array of glob patterns to ignore certain files or directories
  * @returns An array of strings, each representing a line from the ripgrep output.
  */
 
 export async function ripgrep(
   repoPath: string,
-  searchPath = `.`,
   pattern: string,
-  caseSensitive = false,
-  ignored?: string[],
-  linesBefore = 0,
-  linesAfter = 0
+  searchPath: string,
+  caseSensitive: boolean,
+  linesBefore: number,
+  linesAfter: number,
+  ignored?: string[]
 ): Promise<string[]> {
   const result = await rgSearch(
     repoPath,
-    searchPath,
     pattern,
+    searchPath,
     caseSensitive,
-    ignored,
     linesBefore,
-    linesAfter
+    linesAfter,
+    ignored
   );
   return result.split('\n').filter((line) => line.trim() !== '');
 }
