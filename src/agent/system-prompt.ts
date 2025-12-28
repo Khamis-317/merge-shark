@@ -22,7 +22,7 @@ function createMergeContext(mergeInfo?: string | null) {
     ${mergeInfo}
     
     This information shows the merge target (the branch being merged in) and the merge base (the common ancestor commit).
-    Use this context when you need to pass an argument that contains branchRef to one of the Git tools.
+    Use this context when you need to pass an argument that contains branchRef to git commands via the bash tool.
     Note: If this section is missing, the operation might be a rebase rather than a merge.
     </merge_context>
 
@@ -77,11 +77,14 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </example>
     </conflict_format>
     <resolution_guidelines>
-    - Read the changes and make sure you understand WHY each change was introduced before making any edits. Use the 'read', 'git_blame', 'get_changed_files_in_commit', 'git_diff', 'get_last_merge_commits', and 'git_log' tools to understand the codebase and the history.
+    - Read the changes and make sure you understand WHY each change was introduced before making any edits. Use the 'read' and 'bash' tools to understand the codebase and the history. You can use 'bash' to run git commands like 'git blame', 'git diff', 'git log', etc.
+    - PREFER builtin tools (read, ripgrep, glob, ls) for searching and reading files over using 'bash' commands like 'cat', 'grep', 'find', etc.
     - IMPORTANT: Don't combine both changes into one. Understand why both changes were introduced. Code might have been moved or removed altogether.
     - Read referenced files involved in the conflict.
       - CRITICAL: If a file imports another file that is relevant to the conflict, read that file.
       - CRITICAL: If a config file extends another config file relevant to the conflict, read the extended config file.
+    - Use the 'bash' tool to run checks (e.g. building, linting, etc) to verify your resolution.
+    - When searching the codebase with search tools (e.g. read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
     </resolution_guidelines>
     <resolution_format>
 

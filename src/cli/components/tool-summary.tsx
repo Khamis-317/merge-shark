@@ -5,11 +5,7 @@ import type { MultiEditToolInput } from '../../tools/multi-edit.js';
 import type { LsToolInput } from '../../tools/ls.js';
 import type { RipgrepToolInput } from '../../tools/ripgrep.js';
 import type { GlobToolInput } from '../../tools/glob.js';
-import type { GitBlameToolInput } from '../../tools/git-blame.js';
-import type { GitDiffToolInput } from '../../tools/git-diff.js';
-import type { GitLogToolInput } from '../../tools/git-log.js';
-import type { GetChangedFilesToolInput } from '../../tools/get-changed-files.js';
-import type { GetLastMergeCommitsToolInput } from '../../tools/get-last-merge-commits.js';
+import type { BashToolInput } from '../../tools/bash.js';
 import chalk from 'chalk';
 import { countLines } from '../../utils/count-lines.js';
 
@@ -27,11 +23,7 @@ type ToolInput =
   | LsToolInput
   | RipgrepToolInput
   | GlobToolInput
-  | GitBlameToolInput
-  | GitDiffToolInput
-  | GitLogToolInput
-  | GetChangedFilesToolInput
-  | GetLastMergeCommitsToolInput;
+  | BashToolInput;
 
 function formatToolSummary(toolName: string, input: unknown): string {
   const toolInput = input as ToolInput;
@@ -83,44 +75,9 @@ function formatToolSummary(toolName: string, input: unknown): string {
       return `Find files matching "${globInput.pattern}"`;
     }
 
-    case 'git_blame': {
-      const blameInput = toolInput as GitBlameToolInput;
-      if (
-        blameInput.startLine !== undefined &&
-        blameInput.endLine !== undefined
-      ) {
-        return `Git blame ${blameInput.relativeFilePath}, lines ${blameInput.startLine}-${blameInput.endLine}`;
-      }
-      return `Git blame ${blameInput.relativeFilePath}`;
-    }
-
-    case 'git_diff': {
-      const diffInput = toolInput as GitDiffToolInput;
-      if (diffInput.relativeFilePath) {
-        return `Git diff ${diffInput.relativeFilePath} (${diffInput.from}..${diffInput.to})`;
-      }
-      if (diffInput.from && diffInput.to) {
-        return `Git diff ${diffInput.from}..${diffInput.to}`;
-      }
-      return 'Git diff';
-    }
-
-    case 'git_log': {
-      const logInput = toolInput as GitLogToolInput;
-      if (logInput.relativeFilePath) {
-        return `Git log ${logInput.relativeFilePath}${logInput.limit ? ` (${logInput.limit} commits)` : ''}`;
-      }
-      return `Git log${logInput.limit ? ` (${logInput.limit} commits)` : ''}`;
-    }
-
-    case 'get_changed_files_in_commit': {
-      const changedFilesInput = toolInput as GetChangedFilesToolInput;
-      return `Get changed files in ${changedFilesInput.commitHash.substring(0, 7)}`;
-    }
-
-    case 'get_last_merge_commits': {
-      const mergeCommitsInput = toolInput as GetLastMergeCommitsToolInput;
-      return `Get last merge commits${mergeCommitsInput.limit ? ` (${mergeCommitsInput.limit} commits)` : ''}`;
+    case 'bash': {
+      const bashInput = toolInput as BashToolInput;
+      return `Run command: ${bashInput.command}`;
     }
 
     default:
