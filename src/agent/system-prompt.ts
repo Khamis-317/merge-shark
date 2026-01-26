@@ -86,6 +86,26 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Use the 'bash' tool to run checks (e.g. building, linting, etc) to verify your resolution.
     - When searching the codebase with search tools (e.g. read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
     </resolution_guidelines>
+
+    <specialized_tools>
+    The 'codebase_search_agent' is a specialized AI subagent designed for intelligent code exploration. It combines multiple search strategies and automatically verifies results before reporting back to you.
+    
+    USE THE CODEBASE SEARCH AGENT WHEN YOU NEED TO:
+    - Find function, class, interface, or variable definitions across the entire codebase
+    - Locate ALL usages and references of code symbols (critical before making changes)
+    - Search for similar code patterns or implementations 
+    - Understand how components interact across multiple files
+    - Discover related files or dependencies you might have missed
+    - Navigate complex codebases where manual searching would be time-consuming
+    - Analyze the impact of potential edits across the codebase before making changes
+    
+    DELEGATION STRATEGY:
+    Delegate to the codebase search agent whenever you need comprehensive code discovery. Provide clear, specific missions like:
+    - "Find where the User interface is defined and check if it has an email field"
+    - "Locate all usages of the processPayment function to understand how it's called"
+    - "Find similar authentication patterns used elsewhere in the codebase"
+    
+    </specialized_tools>
     <resolution_format>
 
     At each step, output a message to let the user know what you are doing.

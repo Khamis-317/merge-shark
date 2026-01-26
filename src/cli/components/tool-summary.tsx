@@ -6,6 +6,7 @@ import type { LsToolInput } from '../../tools/ls.js';
 import type { RipgrepToolInput } from '../../tools/ripgrep.js';
 import type { GlobToolInput } from '../../tools/glob.js';
 import type { BashToolInput } from '../../tools/bash.js';
+import type { SearchAgentInput } from '../../tools/search-agent.js';
 import chalk from 'chalk';
 import { countLines } from '../../utils/count-lines.js';
 
@@ -23,7 +24,8 @@ type ToolInput =
   | LsToolInput
   | RipgrepToolInput
   | GlobToolInput
-  | BashToolInput;
+  | BashToolInput
+  | SearchAgentInput;
 
 function formatToolSummary(toolName: string, input: unknown): string {
   const toolInput = input as ToolInput;
@@ -78,6 +80,11 @@ function formatToolSummary(toolName: string, input: unknown): string {
     case 'bash': {
       const bashInput = toolInput as BashToolInput;
       return `Run command: ${bashInput.command}`;
+    }
+
+    case 'codebase_search_agent': {
+      const searchInput = toolInput as SearchAgentInput;
+      return `${chalk.cyan('Delegating to Search Agent')}: ${searchInput.mission}`;
     }
 
     default:

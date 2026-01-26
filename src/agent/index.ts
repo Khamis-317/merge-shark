@@ -21,6 +21,7 @@ import {
   MANAGE_TODO_TOOL_NAME,
   type TodoItem,
 } from '../tools/manage-todo.js';
+import { makeSearchAgentTool } from '../tools/search-agent.js';
 import {
   gitMergeTarget,
   gitMergeBase,
@@ -111,6 +112,7 @@ export class ConflictResolutionAgent {
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,
       }),
+      makeSearchAgentTool(this.repoPath, context),
       new TavilySearch({
         tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
       }),
