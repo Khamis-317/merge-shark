@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ConflictResolutionAgent } from '../../agent/index.js';
+import { ConflictResolutionAgent } from '../../agent/conflict-resolution-agent.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
 import type {
   ApprovalResult,
@@ -19,6 +19,7 @@ export type StreamEvent =
       type: 'message';
       id: string;
       content: string;
+      subAgentId?: string | undefined;
     }
   | {
       type: 'thinking';
@@ -26,6 +27,7 @@ export type StreamEvent =
       content: string;
       startTime: number;
       isComplete: boolean;
+      subAgentId?: string | undefined;
     }
   | {
       type: 'tool';
@@ -34,12 +36,19 @@ export type StreamEvent =
       input: unknown;
       output: unknown | null;
       state: ToolState;
+      subAgentId?: string | undefined;
     }
   | {
       type: 'todo';
       todos: TodoItem[];
     };
 
+export type SubAgentPane = {
+  paneNumber: number;
+  callId: string;
+  goal: string;
+  status: 'running' | 'complete' | 'failed';
+};
 export type AgentStatus =
   | 'resolving'
   | 'complete'
@@ -58,6 +67,9 @@ export function useAgentResolution({
   yolo = false,
 }: UseAgentResolutionOptions) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
+  const [subAgentPanes, setSubAgentPanes] = useState<SubAgentPane[]>([]);
+  //null main pane, string is subagent callId
+  const [activePane, setActivePane] = useState<string | null>(null);
   const [status, setStatus] = useState<AgentStatus>('resolving');
   const [edits, setEdits] = useState<FileEditOptions[]>([]);
   const [error, setError] = useState<Error | null>(null);
@@ -68,7 +80,7 @@ export function useAgentResolution({
 
   useEffect(() => {
     const agent = new ConflictResolutionAgent(repoPath, llm, {
-      onMessageChunk: (chunk) => {
+      onMessageChunk: (chunk, subAgentId) => {
         setEvents((prev) => {
           const existingIndex = prev.findIndex(
             (e) => e.type === 'message' && e.id === chunk.id
@@ -94,12 +106,13 @@ export function useAgentResolution({
               type: 'message' as const,
               id: chunk.id,
               content: chunk.text,
+              subAgentId,
             },
           ];
         });
       },
 
-      onReasoningChunk: (chunk) => {
+      onReasoningChunk: (chunk, subAgentId) => {
         setEvents((prev) => {
           const existingIndex = prev.findIndex(
             (e) => e.type === 'thinking' && e.id === chunk.id
@@ -127,13 +140,26 @@ export function useAgentResolution({
               content: chunk.text,
               startTime: Date.now(),
               isComplete: false,
+              subAgentId,
             },
           ];
         });
       },
 
-      onToolStart: (info) => {
+      onToolStart: (info, subAgentId) => {
         const callId = info.callId || `${info.toolName}-${Date.now()}`;
+
+        if (!subAgentId && info.toolName === 'codebase_explorer') {
+          setSubAgentPanes((prev) => [
+            ...prev,
+            {
+              paneNumber: prev.length + 1,
+              callId,
+              goal: (info.input as { goal?: string })?.goal ?? 'Exploring...',
+              status: 'running',
+            },
+          ]);
+        }
 
         setEvents((prev) => {
           // Mark any active thinking as complete
@@ -153,20 +179,30 @@ export function useAgentResolution({
               input: info.input,
               output: null,
               state: { status: 'running' },
+              subAgentId,
             },
           ];
         });
       },
 
-      onToolEnd: (info) => {
+      onToolEnd: (info, subAgentId) => {
         const callId = info.callId || `${info.toolName}-${Date.now()}`;
+        if (!subAgentId && info.toolName === 'codebase_explorer') {
+          setSubAgentPanes((prev) =>
+            prev.map((pane) =>
+              pane.callId === callId
+                ? { ...pane, status: info.isError ? 'failed' : 'complete' }
+                : pane
+            )
+          );
+        }
         const status = info.isError
           ? ('failed' as const)
           : ('complete' as const);
         setEvents((prev) =>
           prev.map((event) =>
             event.type === 'tool' && event.callId === callId
-              ? { ...event, output: info.output, state: { status } }
+              ? { ...event, output: info.output, state: { status }, subAgentId }
               : event
           )
         );
@@ -284,12 +320,19 @@ export function useAgentResolution({
     }
   };
 
+  const activePaneEvents =
+    activePane === null
+      ? events.filter((e) => !('subAgentId' in e) || !e.subAgentId)
+      : events.filter((e) => 'subAgentId' in e && e.subAgentId === activePane);
   return {
-    events,
+    events: activePaneEvents,
     status,
     edits,
     error,
     todos,
+    subAgentPanes,
+    activePane,
+    setActivePane,
     onApprove: handleApprove,
     onReject: handleReject,
   };

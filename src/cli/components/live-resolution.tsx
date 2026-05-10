@@ -1,9 +1,10 @@
-import { Box, Text } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useAgentResolution } from '../hooks/use-agent-resolution.js';
 import { Header } from './live-resolution/header.js';
 import { EventList } from './live-resolution/event-list.js';
 import { StatusIndicator } from './live-resolution/status-indicator.js';
 import { ErrorDisplay } from './live-resolution/error-display.js';
+import { TabBar } from './live-resolution/tab-bar.js';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
 
 export interface LiveResolutionProps {
@@ -19,14 +20,56 @@ export function LiveResolution({
   model,
   yolo = false,
 }: LiveResolutionProps) {
-  const { events, status, edits, error, onApprove, onReject } =
-    useAgentResolution({ repoPath, llm, yolo });
+  const {
+    events,
+    status,
+    edits,
+    error,
+    onApprove,
+    onReject,
+    subAgentPanes,
+    activePane,
+    setActivePane,
+  } = useAgentResolution({ repoPath, llm, yolo });
 
+  useInput(
+    (input) => {
+      if (input === '0') {
+        setActivePane(null); // back to main
+        return;
+      }
+      const num = parseInt(input, 10);
+      if (num >= 1 && num <= 9) {
+        const targetPane = subAgentPanes.find((p) => p.paneNumber === num);
+        if (targetPane) {
+          // toggle
+          setActivePane(
+            activePane === targetPane.callId ? null : targetPane.callId
+          );
+        }
+      }
+    },
+    { isActive: status !== 'awaiting-approval' }
+  );
+  const activePaneInfo = activePane
+    ? subAgentPanes.find((p) => p.callId === activePane)
+    : null;
   return (
     <Box flexDirection="column" paddingX={1} alignItems="stretch">
       <Box flexDirection="column" alignItems="center" marginBottom={1}>
-        <Header />
-        <Text color="blue">{model}</Text>
+        {activePaneInfo ? (
+          <>
+            <Text color="cyan" bold>
+              Sub-Agent #{activePaneInfo.paneNumber}
+            </Text>
+            <Text color="gray">Exploring: {activePaneInfo.goal}</Text>
+          </>
+        ) : (
+          <>
+            <Header />
+            <Text color="blue">{model}</Text>
+          </>
+        )}
       </Box>
 
       {/* Render events in order - edit approval is now handled separately */}
@@ -38,15 +81,18 @@ export function LiveResolution({
       />
 
       {/* Progress indicator */}
-      <StatusIndicator
-        status={status}
-        events={events}
-        edits={edits}
-        error={error}
-      />
+      {!activePane && (
+        <StatusIndicator
+          status={status}
+          events={events}
+          edits={edits}
+          error={error}
+        />
+      )}
 
       {/* Error message */}
-      <ErrorDisplay error={error} />
+      {!activePane && <ErrorDisplay error={error} />}
+      <TabBar subAgentPanes={subAgentPanes} activePane={activePane} />
     </Box>
   );
 }
