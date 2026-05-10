@@ -1,4 +1,4 @@
-import { createSystemPrompt } from './system-prompt.js';
+import { createSystemPrompt } from './conflict-resolution-agent-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
 import {
@@ -16,12 +16,12 @@ import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
 import { makeBashTool } from '../tools/bash.js';
+import { makeCodebaseExplorerTool } from '../tools/codebase-explorer.js';
 import {
   makeManageTodoTool,
   MANAGE_TODO_TOOL_NAME,
   type TodoItem,
 } from '../tools/manage-todo.js';
-import { makeSearchAgentTool } from '../tools/search-agent.js';
 import {
   gitMergeTarget,
   gitMergeBase,
@@ -49,19 +49,25 @@ export type StreamTextChunk = {
 };
 
 export interface ConflictAgentCallbacks {
-  onMessageChunk: (chunk: StreamTextChunk) => void;
-  onReasoningChunk: (chunk: StreamTextChunk) => void;
-  onToolStart: (info: {
-    toolName: string;
-    input: unknown;
-    callId?: string | undefined;
-  }) => void;
-  onToolEnd: (info: {
-    toolName: string;
-    output: unknown;
-    callId?: string;
-    isError?: boolean;
-  }) => void;
+  onMessageChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
+  onReasoningChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
+  onToolStart: (
+    info: {
+      toolName: string;
+      input: unknown;
+      callId?: string | undefined;
+    },
+    subAgentId?: string
+  ) => void;
+  onToolEnd: (
+    info: {
+      toolName: string;
+      output: unknown;
+      callId?: string;
+      isError?: boolean;
+    },
+    subAgentId?: string
+  ) => void;
   onEditRequested: (edit: FileEditOptions) => Promise<ApprovalResult>;
   onBashRequested: (request: BashCommandRequest) => Promise<ApprovalResult>;
   onTodoUpdate: (todos: TodoItem[]) => void;
@@ -112,7 +118,7 @@ export class ConflictResolutionAgent {
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,
       }),
-      makeSearchAgentTool(this.repoPath, context),
+      makeCodebaseExplorerTool(this.repoPath, this.llm, this.callbacks),
       new TavilySearch({
         tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
       }),
