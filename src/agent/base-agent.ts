@@ -49,6 +49,7 @@ export abstract class BaseAgent {
    * onToolEnd callbacks
    */
   protected shouldSkipTool(_toolName: string): boolean {
+    void _toolName;
     return false;
   }
 
@@ -56,8 +57,10 @@ export abstract class BaseAgent {
    * Called after every text chunk is emitted via onMessageChunk.
    * Subclasses may use this to track accumulated message text.
    */
-  protected onMessageEmitted(_messageId: string, _text: string): void {}
-
+  protected onMessageEmitted(_messageId: string, _text: string): void {
+    void _messageId;
+    void _text;
+  }
 
   protected handleStreamUpdate(
     chunk: Record<
