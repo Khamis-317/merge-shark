@@ -4,7 +4,7 @@ import { dedent } from '../utils/dedent.js';
 import {
   CodebaseExplorerAgent,
   type CodebaseExplorerAgentCallbacks,
-} from '../agent/codebase-explorer-agent.js';
+} from '../agent/subagents/codebase-explorer-agent.js';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import type { ConflictAgentCallbacks } from '../agent/conflict-resolution-agent.js';
 

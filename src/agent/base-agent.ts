@@ -1,10 +1,4 @@
-import type { StructuredTool } from 'langchain';
-import type { BaseToolContext } from '../utils/tool-context.js';
-import type { StreamTextChunk } from './conflict-resolution-agent.js';
-import type { LanguageModelLike } from '@langchain/core/language_models/base';
-import { createExplorerAgentPrompt } from './codebase-explorer-agent-prompt.js';
 import {
-  createAgent,
   AIMessageChunk,
   BaseMessage,
   ToolMessage,
@@ -16,16 +10,12 @@ import type {
   Messages,
   UpdateType,
 } from '@langchain/langgraph';
-import { makeReadTool } from '../tools/read.js';
-import { makeLsTool } from '../tools/ls.js';
-import { makeRipgrepTool } from '../tools/ripgrep.js';
-import { makeGlobTool } from '../tools/glob.js';
-import { dedent } from '../utils/dedent.js';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import { z } from 'zod';
 
-export interface CodebaseExplorerAgentCallbacks {
-  onMessageChunk: (chunk: StreamTextChunk) => void;
-  onReasoningChunk: (chunk: StreamTextChunk) => void;
+export interface BaseAgentCallbacks {
+  onMessageChunk: (chunk: { id: string; text: string }) => void;
+  onReasoningChunk: (chunk: { id: string; text: string }) => void;
   onToolStart: (info: {
     toolName: string;
     input: unknown;
@@ -39,94 +29,37 @@ export interface CodebaseExplorerAgentCallbacks {
   }) => void;
 }
 
-interface ExplorationRequest {
-  goal: string;
-  startPaths?: string[];
-}
-
-interface ExplorationResult {
-  findings: string;
-  filesRead: string[];
-}
-
-export class CodebaseExplorerAgent {
-  private emittedToolCallIds = new Set<string>();
-  private messageTextById = new Map<string, string>();
-  private lastMessageId: string | null = null;
+/**
+ * Abstract base class that owns all LangGraph stream-handling logic.
+ * Subclasses opt in to agent-specific behaviour via two protected hooks:
+ *   - `shouldSkipTool(name)` which return true to suppress a tool from callbacks
+ *   - `onMessageEmitted(id, text)` which is called after each text chunk is emitted
+ */
+export abstract class BaseAgent {
+  protected emittedToolCallIds = new Set<string>();
 
   constructor(
-    private repoPath: string,
-    private llm: LanguageModelLike,
-    private callbacks: CodebaseExplorerAgentCallbacks
+    protected repoPath: string,
+    protected llm: LanguageModelLike,
+    protected callbacks: BaseAgentCallbacks
   ) {}
 
-  async explore(request: ExplorationRequest): Promise<ExplorationResult> {
-    const context: BaseToolContext = {
-      readFiles: new Map(),
-    };
-    this.emittedToolCallIds.clear();
-    this.messageTextById.clear();
-    this.lastMessageId = null;
-
-    const tools: StructuredTool[] = [
-      makeReadTool(this.repoPath, context),
-      makeLsTool(this.repoPath),
-      makeRipgrepTool(this.repoPath),
-      makeGlobTool(this.repoPath),
-    ];
-
-    const agent = createAgent({
-      model: this.llm,
-      tools,
-    });
-
-    const systemPrompt = createExplorerAgentPrompt(this.repoPath);
-    const userPrompt = dedent`
-            Explore the codebase to achieve the following goal:
-            ${request.goal}
-            Start Your Exploration From the following paths:
-            ${request.startPaths && request.startPaths.length > 0 ? request.startPaths.join('\n') : this.repoPath}
-            `;
-    const messages = [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      {
-        role: 'user',
-        content: userPrompt,
-      },
-    ];
-
-    const stream = await agent.stream(
-      { messages },
-      { streamMode: ['messages', 'updates'], recursionLimit: 1000 }
-    );
-    for await (const [mode, chunk] of stream) {
-      if (mode === 'updates') {
-        this.handleStreamUpdate(chunk);
-      } else {
-        this.handleStreamMessage(chunk);
-      }
-    }
-
-    return this.generateExplorationResult(context);
+  /**
+   * Return true to prevent a tool from being forwarded to onToolStart /
+   * onToolEnd callbacks
+   */
+  protected shouldSkipTool(_toolName: string): boolean {
+    return false;
   }
 
-  private async generateExplorationResult(
-    context: BaseToolContext
-  ): Promise<ExplorationResult> {
-    const findings = this.lastMessageId
-      ? (this.messageTextById.get(this.lastMessageId) ?? '')
-      : '';
+  /**
+   * Called after every text chunk is emitted via onMessageChunk.
+   * Subclasses may use this to track accumulated message text.
+   */
+  protected onMessageEmitted(_messageId: string, _text: string): void {}
 
-    return {
-      findings,
-      filesRead: Array.from(context.readFiles.keys()),
-    };
-  }
 
-  private handleStreamUpdate(
+  protected handleStreamUpdate(
     chunk: Record<
       string | number | symbol,
       UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
@@ -158,16 +91,14 @@ export class CodebaseExplorerAgent {
       const recordified = JSON.parse(JSON.stringify(agentUpdate.messages));
       const messages = schema.parse(recordified);
       for (const message of messages) {
-        const toolCalls = message.kwargs.tool_calls;
-
-        this.handleToolCalls(toolCalls);
+        this.handleToolCalls(message.kwargs.tool_calls);
       }
     } catch (e) {
       console.error('Failed to parse agent update messages:', e);
     }
   }
 
-  private handleStreamMessage(event: unknown): void {
+  protected handleStreamMessage(event: unknown): void {
     if (Array.isArray(event)) {
       for (const item of event) {
         this.handleStreamMessage(item);
@@ -185,7 +116,7 @@ export class CodebaseExplorerAgent {
     }
   }
 
-  private handleAIMessageChunk(chunk: AIMessageChunk): void {
+  protected handleAIMessageChunk(chunk: AIMessageChunk): void {
     const messageId = chunk.id ?? 'ai-message';
     const content = chunk.content;
 
@@ -210,8 +141,11 @@ export class CodebaseExplorerAgent {
     }
   }
 
-  private handleToolMessage(message: ToolMessage): void {
+  protected handleToolMessage(message: ToolMessage): void {
     const toolName = message.name ?? 'tool';
+
+    if (this.shouldSkipTool(toolName)) return;
+
     const callId = message.tool_call_id ?? undefined;
     const content = this.extractContentString(message.content);
     const output =
@@ -224,10 +158,7 @@ export class CodebaseExplorerAgent {
       output: unknown;
       callId?: string;
       isError?: boolean;
-    } = {
-      toolName,
-      output,
-    };
+    } = { toolName, output };
 
     if (callId) {
       info.callId = callId;
@@ -244,8 +175,10 @@ export class CodebaseExplorerAgent {
     }
   }
 
-  private handleToolCalls(toolCalls: ToolCall[]): void {
+  protected handleToolCalls(toolCalls: ToolCall[]): void {
     for (const call of toolCalls) {
+      if (this.shouldSkipTool(call.name)) continue;
+
       if (call.id && this.emittedToolCallIds.has(call.id)) {
         continue;
       }
@@ -254,45 +187,33 @@ export class CodebaseExplorerAgent {
         this.emittedToolCallIds.add(call.id);
       }
 
-      const info = {
+      this.callbacks.onToolStart({
         toolName: call.name,
         input: call.args,
         callId: call.id,
-      };
-
-      this.callbacks.onToolStart(info);
+      });
     }
   }
 
-  private emitReasoningChunk(messageId: string, text: string): void {
-    if (!text) {
-      return;
-    }
-
+  protected emitReasoningChunk(messageId: string, text: string): void {
+    if (!text) return;
     this.callbacks.onReasoningChunk({ id: messageId, text });
   }
 
-  private emitMessageChunk(messageId: string, text: string): void {
-    if (!text) {
-      return;
-    }
-    // Tracing for Findings Generation
-    const previous = this.messageTextById.get(messageId) ?? '';
-    this.messageTextById.set(messageId, `${previous}${text}`);
-    this.lastMessageId = messageId;
-
+  protected emitMessageChunk(messageId: string, text: string): void {
+    if (!text) return;
+    this.onMessageEmitted(messageId, text);
     this.callbacks.onMessageChunk({ id: messageId, text });
   }
 
-  private asNonEmptyString(value: unknown): string | null {
+  protected asNonEmptyString(value: unknown): string | null {
     if (typeof value !== 'string') {
       return null;
     }
-
     return value;
   }
 
-  private extractContentString(content: unknown): string | null {
+  protected extractContentString(content: unknown): string | null {
     if (typeof content === 'string') {
       return content;
     }
@@ -327,7 +248,7 @@ export class CodebaseExplorerAgent {
     return null;
   }
 
-  private tryParseJson(value: string): unknown {
+  protected tryParseJson(value: string): unknown {
     try {
       return JSON.parse(value);
     } catch {

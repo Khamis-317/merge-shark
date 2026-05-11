@@ -1,4 +1,4 @@
-import { dedent } from '../utils/dedent.js';
+import { dedent } from '../../utils/dedent.js';
 
 export function createExplorerAgentPrompt(repoPath: string) {
   const prompt = dedent`

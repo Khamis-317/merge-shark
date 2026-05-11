@@ -1,14 +1,7 @@
 import { createSystemPrompt } from './conflict-resolution-agent-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
-import {
-  createAgent,
-  AIMessageChunk,
-  BaseMessage,
-  ToolMessage,
-  type ContentBlock,
-  type ToolCall,
-} from 'langchain';
+import { createAgent } from 'langchain';
 import { StructuredTool } from '@langchain/core/tools';
 import { TavilySearch } from '@langchain/tavily';
 import { makeEditTool } from '../tools/edit.js';
@@ -28,15 +21,10 @@ import {
   formatMergeInfo,
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
-import { z } from 'zod';
+import { BaseAgent, type BaseAgentCallbacks } from './base-agent.js';
 
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
-import type {
-  BinaryOperatorAggregate,
-  Messages,
-  UpdateType,
-} from '@langchain/langgraph';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import type {
   ApprovalResult,
@@ -48,7 +36,7 @@ export type StreamTextChunk = {
   text: string;
 };
 
-export interface ConflictAgentCallbacks {
+export interface ConflictAgentCallbacks extends BaseAgentCallbacks {
   onMessageChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
   onReasoningChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
   onToolStart: (
@@ -73,18 +61,24 @@ export interface ConflictAgentCallbacks {
   onTodoUpdate: (todos: TodoItem[]) => void;
 }
 
-export class ConflictResolutionAgent {
+export class ConflictResolutionAgent extends BaseAgent {
   private edits: FileEditOptions[] = [];
-  private emittedToolCallIds = new Set<string>();
 
   constructor(
-    private repoPath: string,
-    private llm: LanguageModelLike,
-    private callbacks: ConflictAgentCallbacks
-  ) {}
+    repoPath: string,
+    llm: LanguageModelLike,
+    protected override callbacks: ConflictAgentCallbacks
+  ) {
+    super(repoPath, llm, callbacks);
+  }
 
   getEdits(): FileEditOptions[] {
     return this.edits;
+  }
+
+  // prevent the internal todo tool from streaming callbacks
+  protected override shouldSkipTool(toolName: string): boolean {
+    return toolName === MANAGE_TODO_TOOL_NAME;
   }
 
   async run(): Promise<FileEditOptions[]> {
@@ -108,6 +102,7 @@ export class ConflictResolutionAgent {
         'Merge info not available - this might be a rebase operation'
       );
     }
+
     const tools: StructuredTool[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
@@ -169,217 +164,5 @@ export class ConflictResolutionAgent {
     }
 
     return this.edits;
-  }
-
-  private handleStreamUpdate(
-    chunk: Record<
-      string | number | symbol,
-      UpdateType<{ messages: BinaryOperatorAggregate<BaseMessage[], Messages> }>
-    >
-  ): void {
-    if (!('model_request' in chunk)) {
-      return;
-    }
-    const agentUpdate = chunk['model_request'];
-
-    const schema = z.array(
-      z.object({
-        kwargs: z.object({
-          tool_calls: z
-            .array(
-              z.object({
-                name: z.string(),
-                args: z.record(z.any()),
-                id: z.string(),
-              })
-            )
-            .optional()
-            .default([]),
-        }),
-      })
-    );
-
-    try {
-      const recordified = JSON.parse(JSON.stringify(agentUpdate.messages));
-      const messages = schema.parse(recordified);
-      for (const message of messages) {
-        const toolCalls = message.kwargs.tool_calls;
-
-        this.handleToolCalls(toolCalls);
-      }
-    } catch (e) {
-      console.error('Failed to parse agent update messages:', e);
-    }
-  }
-
-  private handleStreamMessage(event: unknown): void {
-    if (Array.isArray(event)) {
-      for (const item of event) {
-        this.handleStreamMessage(item);
-      }
-      return;
-    }
-
-    if (event instanceof AIMessageChunk) {
-      this.handleAIMessageChunk(event);
-      return;
-    }
-
-    if (event instanceof ToolMessage) {
-      this.handleToolMessage(event);
-    }
-  }
-
-  private handleAIMessageChunk(chunk: AIMessageChunk): void {
-    const messageId = chunk.id ?? 'ai-message';
-    const content = chunk.content;
-
-    if (Array.isArray(content)) {
-      for (const part of content) {
-        if (part.type === 'reasoning') {
-          this.emitReasoningChunk(
-            messageId,
-            (part as ContentBlock.Reasoning).reasoning
-          );
-        }
-
-        if (part.type === 'text') {
-          this.emitMessageChunk(messageId, (part as ContentBlock.Text).text);
-        }
-      }
-    } else {
-      const text = this.asNonEmptyString(content);
-      if (text) {
-        this.emitMessageChunk(messageId, text);
-      }
-    }
-  }
-
-  private handleToolMessage(message: ToolMessage): void {
-    const toolName = message.name ?? 'tool';
-
-    // Tool updates are handled through onTodoUpdate
-    if (toolName === MANAGE_TODO_TOOL_NAME) return;
-
-    const callId = message.tool_call_id ?? undefined;
-    const content = this.extractContentString(message.content);
-    const output =
-      typeof content === 'string' ? this.tryParseJson(content) : content;
-
-    const isError = message.status !== 'success';
-
-    const info: {
-      toolName: string;
-      output: unknown;
-      callId?: string;
-      isError?: boolean;
-    } = {
-      toolName,
-      output,
-    };
-
-    if (callId) {
-      info.callId = callId;
-    }
-
-    if (isError) {
-      info.isError = true;
-    }
-
-    this.callbacks.onToolEnd(info);
-
-    if (callId) {
-      this.emittedToolCallIds.delete(callId);
-    }
-  }
-
-  private handleToolCalls(toolCalls: ToolCall[]): void {
-    for (const call of toolCalls) {
-      // Tool updates are handled through onTodoUpdate
-      if (call.name === MANAGE_TODO_TOOL_NAME) return;
-
-      if (call.id && this.emittedToolCallIds.has(call.id)) {
-        continue;
-      }
-
-      if (call.id) {
-        this.emittedToolCallIds.add(call.id);
-      }
-
-      const info = {
-        toolName: call.name,
-        input: call.args,
-        callId: call.id,
-      };
-
-      this.callbacks.onToolStart(info);
-    }
-  }
-
-  private emitReasoningChunk(messageId: string, text: string): void {
-    if (!text) {
-      return;
-    }
-
-    this.callbacks.onReasoningChunk({ id: messageId, text });
-  }
-
-  private emitMessageChunk(messageId: string, text: string): void {
-    if (!text) {
-      return;
-    }
-
-    this.callbacks.onMessageChunk({ id: messageId, text });
-  }
-
-  private asNonEmptyString(value: unknown): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    return value;
-  }
-
-  private extractContentString(content: unknown): string | null {
-    if (typeof content === 'string') {
-      return content;
-    }
-
-    if (Array.isArray(content)) {
-      const parts = content
-        .map((part) => {
-          if (typeof part === 'string') {
-            return part;
-          }
-
-          if (part && typeof part === 'object') {
-            if (
-              'text' in part &&
-              typeof (part as { text?: unknown }).text === 'string'
-            ) {
-              return (part as { text: string }).text;
-            }
-          }
-
-          return null;
-        })
-        .filter((part): part is string => {
-          return typeof part === 'string' && part.length > 0;
-        });
-
-      if (parts.length > 0) {
-        return parts.join('\n');
-      }
-    }
-
-    return null;
-  }
-
-  private tryParseJson(value: string): unknown {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
   }
 }
