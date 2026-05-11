@@ -64,7 +64,7 @@ export function TabBar({ subAgentPanes, activePane }: TabBarProps) {
       })}
 
       {/* Navigation hint */}
-      <Text dimColor> 0-{Math.min(subAgentPanes.length, 9)} to switch</Text>
+      <Text dimColor> 1-{Math.min(subAgentPanes.length, 9)} to switch</Text>
     </Box>
   );
 }

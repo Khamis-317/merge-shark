@@ -34,15 +34,11 @@ export function LiveResolution({
 
   useInput(
     (input) => {
-      if (input === '0') {
-        setActivePane(null); // back to main
-        return;
-      }
       const num = parseInt(input, 10);
       if (num >= 1 && num <= 9) {
         const targetPane = subAgentPanes.find((p) => p.paneNumber === num);
         if (targetPane) {
-          // toggle
+          // toggle: pressing the active pane number again returns to main
           setActivePane(
             activePane === targetPane.callId ? null : targetPane.callId
           );
