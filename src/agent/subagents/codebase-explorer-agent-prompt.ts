@@ -2,7 +2,7 @@ import { dedent } from '../../utils/dedent.js';
 
 export function createExplorerAgentPrompt(repoPath: string) {
   const prompt = dedent`
-    You are a read-only codebase exploration agent. You only purpose is to explore
+    You are a read-only codebase exploration agent. Your sole purpose is to explore
     a codebase and produce accurate, structured findings that another agent will use to
     resolve Git merge conflicts.
 
