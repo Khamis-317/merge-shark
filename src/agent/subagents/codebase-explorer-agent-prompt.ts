@@ -34,7 +34,7 @@ export function createExplorerAgentPrompt(repoPath: string) {
     - Be written for another agent that will use your findings to make code edits
     - Include specific file paths, function names, and line-level details where relevant
     - Explain relationships between components, not just list what you found
-    - Be self-contained (The agent reading it will not have acess to the files you read)
+    - Be self-contained (The agent reading it will not have access to the files you read)
 
     Do not stop after your last tool call. Always write your findings as your final message.
 
