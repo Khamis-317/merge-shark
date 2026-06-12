@@ -13,20 +13,29 @@ import type {
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import { z } from 'zod';
 
+export interface MessageChunkInfo {
+  id: string;
+  text: string;
+}
+
+export interface ToolStartInfo {
+  toolName: string;
+  input: unknown;
+  callId?: string | undefined;
+}
+
+export interface ToolEndInfo {
+  toolName: string;
+  output: unknown;
+  callId?: string;
+  isError?: boolean;
+}
+
 export interface BaseAgentCallbacks {
-  onMessageChunk: (chunk: { id: string; text: string }) => void;
-  onReasoningChunk: (chunk: { id: string; text: string }) => void;
-  onToolStart: (info: {
-    toolName: string;
-    input: unknown;
-    callId?: string | undefined;
-  }) => void;
-  onToolEnd: (info: {
-    toolName: string;
-    output: unknown;
-    callId?: string;
-    isError?: boolean;
-  }) => void;
+  onMessageChunk: (chunk: MessageChunkInfo) => void;
+  onReasoningChunk: (chunk: MessageChunkInfo) => void;
+  onToolStart: (info: ToolStartInfo) => void;
+  onToolEnd: (info: ToolEndInfo) => void;
 }
 
 /**
@@ -156,12 +165,7 @@ export abstract class BaseAgent {
 
     const isError = message.status !== 'success';
 
-    const info: {
-      toolName: string;
-      output: unknown;
-      callId?: string;
-      isError?: boolean;
-    } = { toolName, output };
+    const info: ToolEndInfo = { toolName, output };
 
     if (callId) {
       info.callId = callId;
