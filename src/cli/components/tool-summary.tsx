@@ -80,6 +80,15 @@ function formatToolSummary(toolName: string, input: unknown): string {
       return `Run command: ${bashInput.command}`;
     }
 
+    case 'codebase_explorer': {
+      const explorerInput = toolInput as { goal?: string };
+      const goalPreview = explorerInput.goal
+        ? explorerInput.goal.slice(0, 60) +
+          (explorerInput.goal.length > 60 ? '…' : '')
+        : 'codebase';
+      return `Exploring: ${goalPreview}`;
+    }
+
     default:
       return `${toolName}`;
   }

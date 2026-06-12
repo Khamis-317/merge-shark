@@ -1,0 +1,168 @@
+import { createSystemPrompt } from './conflict-resolution-agent-prompt.js';
+import { getConflictingFiles } from '../context/conflicting-files.js';
+import { makeReadTool } from '../tools/read.js';
+import { createAgent } from 'langchain';
+import { StructuredTool } from '@langchain/core/tools';
+import { TavilySearch } from '@langchain/tavily';
+import { makeEditTool } from '../tools/edit.js';
+import { makeLsTool } from '../tools/ls.js';
+import { makeRipgrepTool } from '../tools/ripgrep.js';
+import { makeGlobTool } from '../tools/glob.js';
+import { makeBashTool } from '../tools/bash.js';
+import { makeCodebaseExplorerTool } from '../tools/codebase-explorer.js';
+import {
+  makeManageTodoTool,
+  MANAGE_TODO_TOOL_NAME,
+  type TodoItem,
+} from '../tools/manage-todo.js';
+import {
+  gitMergeTarget,
+  gitMergeBase,
+  formatMergeInfo,
+} from '../utils/git-utils.js';
+import { dedent } from '../utils/dedent.js';
+import { BaseAgent, type BaseAgentCallbacks } from './base-agent.js';
+
+import type { ToolContext } from '../utils/tool-context.js';
+import type { FileEditOptions } from '../utils/edit-file.js';
+import type { LanguageModelLike } from '@langchain/core/language_models/base';
+import type {
+  ApprovalResult,
+  BashCommandRequest,
+} from '../utils/tool-context.js';
+
+export type StreamTextChunk = {
+  id: string;
+  text: string;
+};
+
+export interface ConflictAgentCallbacks extends BaseAgentCallbacks {
+  onMessageChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
+  onReasoningChunk: (chunk: StreamTextChunk, subAgentId?: string) => void;
+  onToolStart: (
+    info: {
+      toolName: string;
+      input: unknown;
+      callId?: string | undefined;
+    },
+    subAgentId?: string
+  ) => void;
+  onToolEnd: (
+    info: {
+      toolName: string;
+      output: unknown;
+      callId?: string;
+      isError?: boolean;
+    },
+    subAgentId?: string
+  ) => void;
+  onEditRequested: (edit: FileEditOptions) => Promise<ApprovalResult>;
+  onBashRequested: (request: BashCommandRequest) => Promise<ApprovalResult>;
+  onTodoUpdate: (todos: TodoItem[]) => void;
+}
+
+export class ConflictResolutionAgent extends BaseAgent {
+  private edits: FileEditOptions[] = [];
+
+  constructor(
+    repoPath: string,
+    llm: LanguageModelLike,
+    protected override callbacks: ConflictAgentCallbacks
+  ) {
+    super(repoPath, llm, callbacks);
+  }
+
+  getEdits(): FileEditOptions[] {
+    return this.edits;
+  }
+
+  // prevent the internal todo tool from streaming callbacks
+  protected override shouldSkipTool(toolName: string): boolean {
+    return toolName === MANAGE_TODO_TOOL_NAME;
+  }
+
+  async run(): Promise<FileEditOptions[]> {
+    const conflictingFiles = await getConflictingFiles(this.repoPath);
+    const context: ToolContext = {
+      readFiles: new Map(),
+      onEditRequested: this.callbacks.onEditRequested,
+      onBashRequested: this.callbacks.onBashRequested,
+    };
+    this.emittedToolCallIds.clear();
+
+    // Try to get merge information (may fail in case of rebase)
+    let mergeInfo: string | null = null;
+    try {
+      const mergeTarget = await gitMergeTarget(this.repoPath);
+      const mergeBase = await gitMergeBase(this.repoPath, 'HEAD', mergeTarget);
+      mergeInfo = formatMergeInfo(mergeTarget, mergeBase);
+    } catch {
+      // Merge info not available (likely a rebase operation)
+      console.log(
+        'Merge info not available - this might be a rebase operation'
+      );
+    }
+
+    const tools: StructuredTool[] = [
+      makeReadTool(this.repoPath, context),
+      makeEditTool(this.repoPath, this.edits, context),
+      makeLsTool(this.repoPath),
+      makeRipgrepTool(this.repoPath),
+      makeGlobTool(this.repoPath),
+      makeBashTool(this.repoPath, context),
+      makeManageTodoTool({
+        onTodoUpdate: this.callbacks.onTodoUpdate,
+      }),
+      makeCodebaseExplorerTool(this.repoPath, this.llm, this.callbacks),
+      new TavilySearch({
+        tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
+      }),
+    ];
+
+    const agent = createAgent({
+      model: this.llm,
+      tools,
+    });
+
+    const systemPrompt = createSystemPrompt({
+      systemInfo: {
+        operatingSystem: process.platform,
+        date: new Date(),
+        workingDirectory: this.repoPath,
+      },
+      mergeInfo,
+    });
+
+    const userPrompt = dedent`
+      Resolve the conflicts in the following files:
+      
+      ${conflictingFiles.map((file) => `- ${file}`).join('\n')}
+      `;
+
+    const messages = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: userPrompt,
+      },
+    ];
+
+    const stream = await agent.stream(
+      { messages },
+      { streamMode: ['messages', 'updates'], recursionLimit: 500 }
+    );
+
+    for await (const [mode, chunk] of stream) {
+      if (mode === 'updates') {
+        this.handleStreamUpdate(chunk);
+      } else {
+        this.handleStreamMessage(chunk);
+      }
+    }
+
+    return this.edits;
+  }
+}

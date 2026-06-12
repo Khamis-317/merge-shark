@@ -78,14 +78,46 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </conflict_format>
     <resolution_guidelines>
     - Read the changes and make sure you understand WHY each change was introduced before making any edits. Use the 'read' and 'bash' tools to understand the codebase and the history. You can use 'bash' to run git commands like 'git blame', 'git diff', 'git log', etc.
-    - PREFER builtin tools (read, ripgrep, glob, ls) for searching and reading files over using 'bash' commands like 'cat', 'grep', 'find', etc.
+    - PREFER builtin tools (read, ripgrep, glob, ls, codebase_explorer) for searching and reading files over using 'bash' commands like 'cat', 'grep', 'find', etc.
     - IMPORTANT: Don't combine both changes into one. Understand why both changes were introduced. Code might have been moved or removed altogether.
     - Read referenced files involved in the conflict.
       - CRITICAL: If a file imports another file that is relevant to the conflict, read that file.
       - CRITICAL: If a config file extends another config file relevant to the conflict, read the extended config file.
     - Use the 'bash' tool to run checks (e.g. building, linting, etc) to verify your resolution.
-    - When searching the codebase with search tools (e.g. read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
+    - When searching the codebase with search tools (e.g. codebase_explorer,read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
     </resolution_guidelines>
+    
+    
+    <codebase_explorer_agent>
+     You have access to a 'codebase_explorer' tool that spawns a dedicated sub-agent 
+     to deeply explore the codebase on your behalf.
+
+      WHEN TO USE IT:
+      - You need to understand how a library, pattern, or API is used across multiple files
+      - Resolving a conflict requires understanding code you haven't read yet that spans 
+        more than 2-3 files
+      - You need to trace data flow or call chains through the codebase
+      - The change you need to make could affect multiple parts of the codebase
+
+      WHEN NOT TO USE IT:
+      - You can answer the question with a single ripgrep or read call
+      - You already have enough context to resolve the conflict
+
+      HOW TO USE THE RESULTS:
+      - The sub-agent returns its findings as a written summary
+      - Use those findings to inform your resolution — interpret them, do not echo them back
+      - Use the findings to resume your analysis, integrating the new information into your ongoing reasoning.
+      - You do not need to repeat or summarize what the sub-agent found — act on it
+
+      EFFICIENCY:
+      - You can call codebase_explorer in parallel with other tool calls if the explorations 
+        are independent
+      - Provide startPaths when you already know which files are relevant — this saves time
+      - You can spawn multiple codebase_explorer agents in parallel if the explorations 
+        are independent
+    </codebase_explorer_agent>
+
+
     <resolution_format>
 
     At each step, output a message to let the user know what you are doing.
@@ -98,7 +130,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Follow the code style of the existing code.
     - IMPORTANT: NEVER assume why a change happened. ALWAYS use the tools to understand the history of the change.
     </code_guidelines>
-
+    
     ${createMergeContext(options.mergeInfo)}
     <system_information>
     Operating system: ${options.systemInfo.operatingSystem}

@@ -3,7 +3,7 @@ import { DEFAULT_FILE_READ_LINES_LIMIT, readFile } from '../utils/read-file.js';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'node:fs/promises';
-import type { ToolContext } from '../utils/tool-context.js';
+import type { BaseToolContext } from '../utils/tool-context.js';
 import { dedent } from '../utils/dedent.js';
 
 const readInputSchema = z.object({
@@ -14,7 +14,7 @@ const readInputSchema = z.object({
 
 export type ReadToolInput = z.infer<typeof readInputSchema>;
 
-export function makeReadTool(repoPath: string, context: ToolContext) {
+export function makeReadTool(repoPath: string, context: BaseToolContext) {
   return tool(
     async ({
       relativePath,

@@ -8,9 +8,11 @@ export interface BashCommandRequest {
   command: string;
 }
 
-export interface ToolContext {
+export interface BaseToolContext {
   // Map of absolute file paths to their modification time when last read
   readFiles: Map<string, Date>;
+}
+export interface ToolContext extends BaseToolContext {
   // Callback to request edit approval from the user
   onEditRequested: (edit: FileEditOptions) => Promise<ApprovalResult>;
   // Callback to request bash command approval from the user
