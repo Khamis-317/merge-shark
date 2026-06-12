@@ -106,7 +106,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
       HOW TO USE THE RESULTS:
       - The sub-agent returns its findings as a written summary
       - Use those findings to inform your resolution — interpret them, do not echo them back
-      - After receiving findings, proceed directly to resolving the conflict using what you learned
+      - Use the findings to resume your analysis, integrating the new information into your ongoing reasoning.
       - You do not need to repeat or summarize what the sub-agent found — act on it
 
       EFFICIENCY:

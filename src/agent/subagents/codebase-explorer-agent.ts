@@ -19,7 +19,6 @@ interface ExplorationRequest {
 
 interface ExplorationResult {
   findings: string;
-  filesRead: string[];
 }
 
 export class CodebaseExplorerAgent extends BaseAgent {
@@ -93,19 +92,16 @@ export class CodebaseExplorerAgent extends BaseAgent {
       }
     }
 
-    return this.generateExplorationResult(context);
+    return this.generateExplorationResult();
   }
 
-  private generateExplorationResult(
-    context: BaseToolContext
-  ): ExplorationResult {
+  private generateExplorationResult(): ExplorationResult {
     const findings = this.lastMessageId
       ? (this.messageTextById.get(this.lastMessageId) ?? '')
       : '';
 
     return {
       findings,
-      filesRead: Array.from(context.readFiles.keys()),
     };
   }
 }

@@ -54,19 +54,7 @@ export function makeCodebaseExplorerTool(
       const result = await explorer.explore(
         startPaths !== undefined ? { goal, startPaths } : { goal }
       );
-      const lines = [
-        dedent`## Findings
-        `,
-        result.findings,
-      ];
-
-      if (result.filesRead.length > 0) {
-        lines.push(``);
-        lines.push(dedent`## Files Read`);
-        result.filesRead.forEach((file) => lines.push(`- ${file}`));
-      }
-
-      return lines.join('\n');
+      return result.findings;
     },
     {
       name: 'codebase_explorer',
@@ -76,7 +64,7 @@ export function makeCodebaseExplorerTool(
       more than 2-3 files — for example, tracing how an interface is implemented 
       across modules, or understanding the full call chain behind a changed function.
       The sub-agent will navigate the codebase autonomously using read, ls, ripgrep, 
-      and glob, then return a detailed written summary of its findings along with the file paths it explored.
+      and glob, then return a detailed written summary of its findings.
       Prefer this over manual ripgrep + read chains when the exploration would take more than 5 steps to complete.
 `,
       schema: codebaseExplorerSchema,
