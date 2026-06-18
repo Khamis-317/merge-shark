@@ -2,7 +2,7 @@ import { createSystemPrompt } from './conflict-resolution-agent-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
 import { makeReadTool } from '../tools/read.js';
 import { createAgent } from 'langchain';
-import { StructuredTool } from '@langchain/core/tools';
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import { TavilySearch } from '@langchain/tavily';
 import { makeEditTool } from '../tools/edit.js';
 import { makeLsTool } from '../tools/ls.js';
@@ -103,7 +103,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       );
     }
 
-    const tools: StructuredTool[] = [
+    const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
       makeLsTool(this.repoPath),
@@ -114,9 +114,13 @@ export class ConflictResolutionAgent extends BaseAgent {
         onTodoUpdate: this.callbacks.onTodoUpdate,
       }),
       makeCodebaseExplorerTool(this.repoPath, this.llm, this.callbacks),
+      // TavilySearch (@langchain/tavily) still ships a zod v3 input schema,
+      // whose types are incompatible with this project's
+      // `exactOptionalPropertyTypes`. It is a valid StructuredTool at runtime,
+      // so cast it to the shared interface.
       new TavilySearch({
         tavilyApiKey: process.env[`TAVILY_API_KEY`]!,
-      }),
+      }) as StructuredToolInterface,
     ];
 
     const agent = createAgent({

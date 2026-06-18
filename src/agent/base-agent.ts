@@ -89,7 +89,7 @@ export abstract class BaseAgent {
             .array(
               z.object({
                 name: z.string(),
-                args: z.record(z.any()),
+                args: z.record(z.string(), z.any()),
                 id: z.string(),
               })
             )
