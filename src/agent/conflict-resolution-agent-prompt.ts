@@ -86,6 +86,17 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     - Use the 'bash' tool to run checks (e.g. building, linting, etc) to verify your resolution.
     - When searching the codebase with search tools (e.g. codebase_explorer,read, ripgrep, ls, glob, git log, git diff, git status, etc), use parallel tool calls to gather information efficiently.
     </resolution_guidelines>
+
+    <lsp_validation_and_approval>
+    - **CRITICAL**: BEFORE calling the 'edit' or 'multi_edit' tools to apply your resolution, you MUST use the 'lsp_validation' tool to validate the suggested changes.
+    - Provide the exact new code of the file to the 'lsp_validation' tool to check for diagnostic errors (syntax, types).
+    - If the LSP returns validation issues, correct them and validate again!
+    - Only call the 'edit' tool once the 'lsp_validation' tool reports no errors or validation issues that can safely be ignored.
+    - When you call the 'edit' tool, the user will be automatically prompted for approval before the file is actually modified.
+    - If the user refuses the suggested edit (returns an error message indicating refusal or providing feedback), you must take their feedback into consideration, find an alternative resolution, validate it using 'lsp_validation', and then try editing again.
+    - **NOTE** YOU WILL ONLY MUST USE THIS TOOL BEFORE CALLING THE EDIT TOOL IF AND ONLY IF THE FILE BEING EDITED IS A CODE FILE THAT CAN BE VALIDATED BY AN LSP (e.g. .java, .ts, .tsx, .js, .jsx, .py, .c, .cpp, .h, .hpp). For non-code files (e.g. config files, markdown files, etc), you can skip the LSP validation step and call the 'edit' tool directly.
+    </lsp_validation_and_approval>
+
     
     
     <codebase_explorer_agent>

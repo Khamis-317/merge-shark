@@ -9,6 +9,7 @@ import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
 import { makeBashTool } from '../tools/bash.js';
+import { makeLspValidationTool } from '../tools/lsp-validation.js';
 import { makeCodebaseExplorerTool } from '../tools/codebase-explorer.js';
 import {
   makeManageTodoTool,
@@ -109,6 +110,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
+      makeLspValidationTool(this.repoPath),
       makeBashTool(this.repoPath, context),
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,
