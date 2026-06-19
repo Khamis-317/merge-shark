@@ -11,6 +11,7 @@ import {
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import type { ToolContext } from '../utils/tool-context.js';
+import type { LSPManager } from '../utils/lsp.js';
 
 const multiEditInputSchema = z.object({
   relativePath: z.string().describe('The relative path to the file to edit'),
@@ -36,7 +37,8 @@ export type MultiEditToolInput = z.infer<typeof multiEditInputSchema>;
 export function makeMultiEditTool(
   repoPath: string,
   edits: FileEditOptions[],
-  context: ToolContext
+  context: ToolContext,
+  lspManager: LSPManager
 ) {
   return tool(
     async ({ relativePath, newEdits }) => {
@@ -95,7 +97,15 @@ export function makeMultiEditTool(
       const stats = await fs.stat(absolutePath);
       context.readFiles.set(absolutePath, stats.mtime);
 
-      return `Successfully applied ${validEdits.length} edit(s)`;
+      const successMessage = `Successfully applied ${validEdits.length} edit(s)`;
+
+      // Dispatch LSP validation on the persisted file
+      if (lspManager.hasLSPSupport(absolutePath)) {
+        const lspResult = await lspManager.validate(absolutePath);
+        return `${successMessage}\n\nLSP Validation Result:\n${lspResult}`;
+      }
+
+      return `${successMessage}. No LSP available for this file type — consider using bash to verify compilation.`;
     },
     {
       name: 'multiedit',
@@ -118,6 +128,8 @@ export function makeMultiEditTool(
         - All edits are applied in sequence, in the order they are provided
         - Each edit operates on the result of the previous edit
         - If any edit fails, none will be applied
+        - After all edits are applied and persisted on disk, the file is automatically validated by the LSP.
+        - If the LSP reports errors, you should fix them by applying another edit.
         `,
       schema: multiEditInputSchema,
     }

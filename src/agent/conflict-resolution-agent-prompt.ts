@@ -88,13 +88,13 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </resolution_guidelines>
 
     <lsp_validation_and_approval>
-    - **CRITICAL**: BEFORE calling the 'edit' or 'multi_edit' tools to apply your resolution, you MUST use the 'lsp_validation' tool to validate the suggested changes.
-    - Provide the exact new code of the file to the 'lsp_validation' tool to check for diagnostic errors (syntax, types).
-    - If the LSP returns validation issues, correct them and validate again!
-    - Only call the 'edit' tool once the 'lsp_validation' tool reports no errors or validation issues that can safely be ignored.
-    - When you call the 'edit' tool, the user will be automatically prompted for approval before the file is actually modified.
-    - If the user refuses the suggested edit (returns an error message indicating refusal or providing feedback), you must take their feedback into consideration, find an alternative resolution, validate it using 'lsp_validation', and then try editing again.
-    - **NOTE** YOU WILL ONLY MUST USE THIS TOOL BEFORE CALLING THE EDIT TOOL IF AND ONLY IF THE FILE BEING EDITED IS A CODE FILE THAT CAN BE VALIDATED BY AN LSP (e.g. .java, .ts, .tsx, .js, .jsx, .py, .c, .cpp, .h, .hpp). For non-code files (e.g. config files, markdown files, etc), you can skip the LSP validation step and call the 'edit' tool directly.
+    - When you call the 'edit' or 'multiedit' tools, the user will be automatically prompted for approval before the file is actually modified.
+    - **AUTOMATIC POST-EDIT VALIDATION**: After an edit is approved and persisted on disk, the LSP automatically validates the file. The validation result is included in the edit tool's response.
+    - If the LSP reports validation errors after the edit, you MUST fix them by applying another edit and checking the validation result again.
+    - If the user refuses the suggested edit (returns an error message indicating refusal or providing feedback), you must take their feedback into consideration and find an alternative resolution.
+    - You can also manually call the 'lsp_validation' tool at any time to check a file's current state on disk — this is useful if you want to check validation status before editing.
+    - **UNSUPPORTED LANGUAGES**: If the file being edited does not have LSP support (i.e. it is not a .java, .ts, .tsx, .js, .jsx, .py, .c, .cpp, .h, or .hpp file), the edit tool will indicate this. In that case, use the 'bash' tool to run appropriate build or compilation commands to verify your resolution is correct.
+    - For non-code files (e.g. config files, markdown files, etc), no validation step is needed.
     </lsp_validation_and_approval>
 
     

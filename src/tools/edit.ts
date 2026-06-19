@@ -11,6 +11,7 @@ import {
   type FileEditOptions,
 } from '../utils/edit-file.js';
 import type { ToolContext } from '../utils/tool-context.js';
+import type { LSPManager } from '../utils/lsp.js';
 
 const editInputSchema = z.object({
   relativePath: z.string(),
@@ -24,7 +25,8 @@ export type EditToolInput = z.infer<typeof editInputSchema>;
 export function makeEditTool(
   repoPath: string,
   edits: FileEditOptions[],
-  context: ToolContext
+  context: ToolContext,
+  lspManager: LSPManager
 ) {
   return tool(
     async ({ relativePath, oldText, newText, replaceAll }) => {
@@ -62,7 +64,13 @@ export function makeEditTool(
       // Keep track of edits for logging/history
       edits.push(fileEdit);
 
-      return 'Edit applied successfully';
+      // Dispatch LSP validation on the persisted file
+      if (lspManager.hasLSPSupport(absolutePath)) {
+        const lspResult = await lspManager.validate(absolutePath);
+        return `Edit applied successfully.\n\nLSP Validation Result:\n${lspResult}`;
+      }
+
+      return 'Edit applied successfully. No LSP available for this file type — consider using bash to verify compilation.';
     },
     {
       name: 'edit',
@@ -72,6 +80,8 @@ export function makeEditTool(
         Do not include any line number prefixes in the 'oldText' or 'newText' values.
         Use 'replaceAll' if you intend to change every occurrence of a string (for example renaming a variable).
         The edit will FAIL if 'oldText' is not found or not unique in the file and 'replaceAll' is not 'true'
+        After the edit is applied and persisted on disk, the file is automatically validated by the LSP.
+        If the LSP reports errors, you should fix them by applying another edit.
         `,
       schema: editInputSchema,
     }

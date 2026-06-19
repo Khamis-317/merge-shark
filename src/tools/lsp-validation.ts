@@ -1,37 +1,31 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import path from 'path';
-import { validateWithLSP } from '../utils/lsp.js';
+import fs from 'node:fs/promises';
+import type { LSPManager } from '../utils/lsp.js';
 import { dedent } from '../utils/dedent.js';
 
 const lspValidationInputSchema = z.object({
   relativePath: z
     .string()
     .describe('The relative path to the file to validate.'),
-  content: z
-    .string()
-    .describe(
-      'The full code content of the file (including suggested edits) to be validated.'
-    ),
 });
 
 export type LSPValidationToolInput = z.infer<typeof lspValidationInputSchema>;
 
 export function makeLspValidationTool(
   repoPath: string,
-  jdtlsPath?: string,
-  jdltlsDataPath?: string
+  lspManager: LSPManager
 ) {
   return tool(
-    async ({ relativePath, content }) => {
+    async ({ relativePath }) => {
       try {
         const absolutePath = path.resolve(repoPath, relativePath);
-        const result = await validateWithLSP(
-          absolutePath,
-          content,
-          jdtlsPath,
-          jdltlsDataPath
-        );
+
+        // Verify the file exists on disk before validating
+        await fs.access(absolutePath);
+
+        const result = await lspManager.validate(absolutePath);
         return result;
       } catch (err: unknown) {
         return `Error during LSP validation: ${err instanceof Error ? err.message : String(err)}`;
@@ -40,9 +34,9 @@ export function makeLspValidationTool(
     {
       name: 'lsp_validation',
       description: dedent`
-        Validates the suggested changes to a file using the corresponding Language Server Protocol (LSP).
-        Provides diagnostics (syntax errors, type validation errors, etc.) before writing the changes to disk.
-        You must use this tool to validate your suggested edits against the LSP BEFORE calling any edit or multi-edit tools and before asking the user for approval.
+        Validates a file on disk using the corresponding Language Server Protocol (LSP).
+        Provides diagnostics (syntax errors, type validation errors, etc.) for the current state of the file.
+        This tool reads the file content directly from disk — the file must already be saved.
         Supported extensions: .java, .ts, .tsx, .js, .jsx, .py, .c, .cpp, .h, .hpp.
       `,
       schema: lspValidationInputSchema,
