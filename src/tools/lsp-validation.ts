@@ -3,7 +3,6 @@ import { z } from 'zod';
 import path from 'path';
 import { validateWithLSP } from '../utils/lsp.js';
 import { dedent } from '../utils/dedent.js';
-import process from 'process';
 
 const lspValidationInputSchema = z.object({
   relativePath: z
@@ -14,29 +13,24 @@ const lspValidationInputSchema = z.object({
     .describe(
       'The full code content of the file (including suggested edits) to be validated.'
     ),
-  jdtlsPath: z
-    .string()
-    .optional()
-    .describe(
-      'The path to the JDTLS folder. Required only if validating Java files.'
-    ),
 });
 
 export type LSPValidationToolInput = z.infer<typeof lspValidationInputSchema>;
 
-export function makeLspValidationTool(repoPath: string) {
+export function makeLspValidationTool(
+  repoPath: string,
+  jdtlsPath?: string,
+  jdltlsDataPath?: string
+) {
   return tool(
-    async ({ relativePath, content, jdtlsPath }) => {
+    async ({ relativePath, content }) => {
       try {
         const absolutePath = path.resolve(repoPath, relativePath);
-        // Look up argument if jdtlsPath not provided but needed
-        const argJdtlsPath =
-          jdtlsPath ||
-          process.argv.find((arg) => arg.startsWith('--jdtls='))?.split('=')[1];
         const result = await validateWithLSP(
           absolutePath,
           content,
-          argJdtlsPath
+          jdtlsPath,
+          jdltlsDataPath
         );
         return result;
       } catch (err: unknown) {

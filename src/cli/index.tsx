@@ -5,7 +5,9 @@ import type { Model } from '../models/index.js';
 export async function start(
   repoPath: string,
   model: Model,
-  yolo: boolean = false
+  yolo: boolean = false,
+  jdtlsPath?: string,
+  jdltlsDataPath?: string
 ) {
   render(
     <LiveResolution
@@ -13,6 +15,8 @@ export async function start(
       llm={model.factory()}
       model={model.name}
       yolo={yolo}
+      jdtlsPath={jdtlsPath ?? ''}
+      jdltlsDataPath={jdltlsDataPath ?? ''}
     />
   );
 }

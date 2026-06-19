@@ -49,7 +49,7 @@ export function getJdtlsCommand(
     configOs = 'mac';
   }
 
-  if (!dataPath) {
+  if (!dataPath || dataPath.trim() === '') {
     dataPath = path.join(process.cwd(), 'tmp', 'javalsp');
   }
 
@@ -139,7 +139,8 @@ export function getClangdCommand(): LSPCommand {
 
 export function getLSPCommand(
   filePath: string,
-  jdtlsPath?: string
+  jdtlsPath?: string,
+  jdltlsDataPath?: string
 ): LSPCommand | null {
   const ext = path.extname(filePath).toLowerCase();
   switch (ext) {
@@ -147,7 +148,7 @@ export function getLSPCommand(
       if (!jdtlsPath) {
         throw new Error('JDTLS path must be provided for Java files');
       }
-      return getJdtlsCommand(jdtlsPath);
+      return getJdtlsCommand(jdtlsPath, jdltlsDataPath);
     case '.py':
       return getPyrightCommand();
     case '.ts':
@@ -191,9 +192,10 @@ function getLanguageId(filePath: string): string {
 export async function validateWithLSP(
   filePath: string,
   content: string,
-  jdtlsPath?: string
+  jdtlsPath?: string,
+  jdltlsDataPath?: string
 ): Promise<string> {
-  const commandInfo = getLSPCommand(filePath, jdtlsPath);
+  const commandInfo = getLSPCommand(filePath, jdtlsPath, jdltlsDataPath);
   if (!commandInfo) {
     return `No LSP configured for file extension ${path.extname(filePath)}`;
   }

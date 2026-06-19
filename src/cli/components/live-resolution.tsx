@@ -12,6 +12,8 @@ export interface LiveResolutionProps {
   llm: LanguageModelLike;
   model: string;
   yolo: boolean;
+  jdtlsPath?: string;
+  jdltlsDataPath?: string;
 }
 
 export function LiveResolution({
@@ -19,6 +21,8 @@ export function LiveResolution({
   llm,
   model,
   yolo = false,
+  jdtlsPath,
+  jdltlsDataPath,
 }: LiveResolutionProps) {
   const {
     events,
@@ -30,7 +34,13 @@ export function LiveResolution({
     subAgentPanes,
     activePane,
     setActivePane,
-  } = useAgentResolution({ repoPath, llm, yolo });
+  } = useAgentResolution({
+    repoPath,
+    llm,
+    yolo,
+    jdtlsPath: jdtlsPath ?? '',
+    jdltlsDataPath: jdltlsDataPath ?? '',
+  });
 
   useInput(
     (input) => {

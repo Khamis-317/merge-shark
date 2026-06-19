@@ -68,9 +68,11 @@ export class ConflictResolutionAgent extends BaseAgent {
   constructor(
     repoPath: string,
     llm: LanguageModelLike,
-    protected override callbacks: ConflictAgentCallbacks
+    protected override callbacks: ConflictAgentCallbacks,
+    jdtlsPath?: string,
+    jdltlsDataPath?: string
   ) {
-    super(repoPath, llm, callbacks);
+    super(repoPath, llm, callbacks, jdtlsPath, jdltlsDataPath);
   }
 
   getEdits(): FileEditOptions[] {
@@ -110,7 +112,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
-      makeLspValidationTool(this.repoPath),
+      makeLspValidationTool(this.repoPath, this.jdtlsPath, this.jdltlsDataPath),
       makeBashTool(this.repoPath, context),
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,
