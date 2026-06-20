@@ -197,16 +197,11 @@ function getLanguageId(filePath: string): string {
   }
 }
 
-/**
- * Represents a single managed LSP server process with its JSON-RPC connection.
- * Each instance is tied to a specific language and stays alive for the agent's
- * lifetime to be reused across multiple validation requests.
- */
 interface ManagedLSP {
   process: ChildProcess;
   connection: rpc.MessageConnection;
   initialized: boolean;
-  /** Document version counter for didChange notifications, keyed by URI */
+  //Document version counter for didChange notifications, keyed by URI
   documentVersions: Map<string, number>;
 }
 
@@ -218,19 +213,7 @@ interface ManagedLSP {
  */
 const DIAGNOSTICS_TIMEOUT_MS = 15_000;
 
-/**
- * Persistent LSP manager that keeps one LSP server process per language alive
- * for the entire lifetime of the agent.
- *
- * Usage:
- *   const mgr = new LSPManager(repoPath);
- *   const result = await mgr.validate('/abs/path/to/file.ts');
- *   // ... later
- *   await mgr.shutdown();
- */
-
 export class LSPManager {
-  /** One managed server per language key (e.g. "typescript", "python") */
   private servers: Map<string, ManagedLSP> = new Map();
 
   constructor(
@@ -239,9 +222,6 @@ export class LSPManager {
     private jdltlsDataPath?: string
   ) {}
 
-  /**
-   * Returns true if the given file extension has a supported LSP.
-   */
   hasLSPSupport(filePath: string): boolean {
     return (
       getLSPCommand(filePath, this.jdtlsPath, this.jdltlsDataPath) !== null
@@ -251,7 +231,7 @@ export class LSPManager {
   /**
    * Validate a file that has already been persisted on disk.
    * Reads the file content from disk, sends it to the LSP, waits for
-   * diagnostics, and returns a human-readable result string.
+   * diagnostics, and returns them to the agent.
    */
   async validate(filePath: string): Promise<string> {
     const absolutePath = path.resolve(filePath);
@@ -278,9 +258,6 @@ export class LSPManager {
     );
   }
 
-  /**
-   * Gracefully shuts down all managed LSP server processes.
-   */
   async shutdown(): Promise<void> {
     const shutdownPromises: Promise<void>[] = [];
 
@@ -291,7 +268,7 @@ export class LSPManager {
             await managed.connection.sendRequest('shutdown');
             managed.connection.sendNotification('exit');
           } catch {
-            // Server may already be dead — that's fine
+            // Server may already be dead
           } finally {
             managed.connection.end();
             managed.process.kill();
@@ -304,13 +281,6 @@ export class LSPManager {
     await Promise.allSettled(shutdownPromises);
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────
-
-  /**
-   * Returns an existing server for the given language or spawns + initialises
-   * a new one. The returned server is guaranteed to have completed the
-   * `initialize` handshake and be ready to receive document notifications.
-   */
   private async getOrCreateServer(
     languageId: string,
     commandInfo: LSPCommand
@@ -338,7 +308,6 @@ export class LSPManager {
 
     connection.listen();
 
-    // Perform the LSP initialize handshake
     const rootUri = `file://${path.resolve(this.repoPath)}`;
 
     await connection.sendRequest('initialize', {
@@ -366,10 +335,6 @@ export class LSPManager {
     return managed;
   }
 
-  /**
-   * Opens (or re-opens) a document in the managed LSP, waits for diagnostics,
-   * then closes it. Returns a human-readable validation result string.
-   */
   private async openAndCollectDiagnostics(
     managed: ManagedLSP,
     documentUri: string,
@@ -380,7 +345,6 @@ export class LSPManager {
     const isAlreadyOpen = currentVersion !== undefined;
 
     if (isAlreadyOpen) {
-      // Document was previously opened — send didChange with incremented version
       const nextVersion = currentVersion + 1;
       managed.documentVersions.set(documentUri, nextVersion);
 
@@ -392,7 +356,6 @@ export class LSPManager {
         contentChanges: [{ text: content }],
       });
     } else {
-      // First time opening this document
       managed.documentVersions.set(documentUri, 1);
 
       managed.connection.sendNotification('textDocument/didOpen', {
@@ -405,7 +368,6 @@ export class LSPManager {
       });
     }
 
-    // Wait for diagnostics
     const diagnostics = await this.waitForDiagnostics(managed, documentUri);
 
     if (diagnostics.length === 0) {
@@ -422,11 +384,6 @@ export class LSPManager {
     return `Validation issues found:\n${errors}`;
   }
 
-  /**
-   * Subscribes to `textDocument/publishDiagnostics` and waits for the
-   * notification matching the requested URI. Uses a timeout to avoid hanging
-   * indefinitely if the server never publishes diagnostics.
-   */
   private waitForDiagnostics(
     managed: ManagedLSP,
     documentUri: string
@@ -435,10 +392,11 @@ export class LSPManager {
       let resolved = false;
       let latestDiagnostics: LSPDiagnostic[] = [];
 
-      // Some servers push multiple diagnostic rounds (e.g. syntax first, then
-      // semantic).  We use a "debounce" approach: every time we get diagnostics
-      // we reset a short timer; if no new diagnostics arrive within the settle
-      // window we resolve.
+          /** Some servers push multiple diagnostic rounds (e.g. syntax first, then
+            semantic).  We use a "debounce" approach: every time we get diagnostics
+            we reset a short timer; if no new diagnostics arrive within the settle
+            window we resolve. 
+          */
       let settleTimer: ReturnType<typeof setTimeout> | null = null;
       const SETTLE_MS = 2_000;
 
@@ -447,7 +405,6 @@ export class LSPManager {
 
         latestDiagnostics = params.diagnostics;
 
-        // Reset the settle timer
         if (settleTimer) clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
           if (!resolved) {
@@ -466,7 +423,6 @@ export class LSPManager {
         handler
       );
 
-      // Hard timeout — don't wait forever
       setTimeout(() => {
         if (!resolved) {
           resolved = true;
