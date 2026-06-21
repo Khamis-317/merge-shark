@@ -266,11 +266,12 @@ export class LSPManager {
         (async () => {
           try {
             await managed.connection.sendRequest('shutdown');
-            managed.connection.sendNotification('exit');
+            await managed.connection.sendNotification('exit');
           } catch {
             // Server may already be dead
           } finally {
             managed.connection.end();
+            managed.connection.dispose();
             managed.process.kill();
             this.servers.delete(langId);
           }
@@ -392,12 +393,14 @@ export class LSPManager {
       let resolved = false;
       let latestDiagnostics: LSPDiagnostic[] = [];
 
-          /** Some servers push multiple diagnostic rounds (e.g. syntax first, then
+      /** Some servers push multiple diagnostic rounds (e.g. syntax first, then
             semantic).  We use a "debounce" approach: every time we get diagnostics
             we reset a short timer; if no new diagnostics arrive within the settle
             window we resolve. 
           */
       let settleTimer: ReturnType<typeof setTimeout> | null = null;
+      let diagnosticsTimeout: ReturnType<typeof setTimeout> | null = null;
+
       const SETTLE_MS = 2_000;
 
       const handler = (params: PublishDiagnosticsParams) => {
@@ -409,6 +412,7 @@ export class LSPManager {
         settleTimer = setTimeout(() => {
           if (!resolved) {
             resolved = true;
+            if (diagnosticsTimeout) clearTimeout(diagnosticsTimeout);
             managed.connection.onNotification(
               'textDocument/publishDiagnostics',
               () => {}
@@ -423,7 +427,7 @@ export class LSPManager {
         handler
       );
 
-      setTimeout(() => {
+      diagnosticsTimeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
           if (settleTimer) clearTimeout(settleTimer);

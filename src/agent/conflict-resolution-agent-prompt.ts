@@ -89,10 +89,10 @@ export function createSystemPrompt(options: SystemPromptOptions) {
 
     <lsp_validation_and_approval>
     - When you call the 'edit' or 'multiedit' tools, the user will be automatically prompted for approval before the file is actually modified.
-    - **AUTOMATIC POST-EDIT VALIDATION**: After an edit is approved and persisted on disk, the LSP automatically validates the file. The validation result is included in the edit tool's response.
-    - If the LSP reports validation errors after the edit, you MUST fix them by applying another edit and checking the validation result again.
-    - If the user refuses the suggested edit (returns an error message indicating refusal or providing feedback), you must take their feedback into consideration and find an alternative resolution.
-    - You can also manually call the 'lsp_validation' tool at any time to check a file's current state on disk — this is useful if you want to check validation status before editing.
+    - **AUTOMATIC POST-EDIT VALIDATION**: After an edit is approved and persisted on disk, the 'lsp-validation' tool is automatically called and validates the file. The validation result is included in the edit tool's response.
+    - You must tell the user that you are currently using the LSP validation tool after the user approves an edit.
+    - If the LSP reports validation errors after the edit, you must fix them by applying another edit and checking the validation result again.
+    - You can also manually call the 'lsp-validation' tool at any time to check a file's current state on disk — this is useful if you want to check validation status before editing.
     - **UNSUPPORTED LANGUAGES**: If the file being edited does not have LSP support (i.e. it is not a .java, .ts, .tsx, .js, .jsx, .py, .c, .cpp, .h, or .hpp file), the edit tool will indicate this. In that case, use the 'bash' tool to run appropriate build or compilation commands to verify your resolution is correct.
     - For non-code files (e.g. config files, markdown files, etc), no validation step is needed.
     </lsp_validation_and_approval>
