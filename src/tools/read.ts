@@ -29,7 +29,10 @@ export function makeReadTool(repoPath: string, context: BaseToolContext) {
       const stats = await fs.stat(absolutePath);
       context.readFiles.set(absolutePath, stats.mtime);
 
-      return data;
+      const injection = context.injectContext
+        ? await context.injectContext(absolutePath)
+        : '';
+      return injection ? `${data}\n${injection}` : data;
     },
     {
       name: 'read',

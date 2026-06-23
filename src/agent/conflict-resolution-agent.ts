@@ -1,5 +1,11 @@
 import { createSystemPrompt } from './conflict-resolution-agent-prompt.js';
 import { getConflictingFiles } from '../context/conflicting-files.js';
+import {
+  findRepoLevelAgentsMd,
+  globAllAgentsMdPaths,
+  collectDirectoryContexts,
+  type AgentsMdContext,
+} from '../context/agents-md.js';
 import { makeReadTool } from '../tools/read.js';
 import { createAgent } from 'langchain';
 import type { StructuredToolInterface } from '@langchain/core/tools';
@@ -83,10 +89,25 @@ export class ConflictResolutionAgent extends BaseAgent {
 
   async run(): Promise<FileEditOptions[]> {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
+
+    const [repoLevel, agentsMdPaths] = await Promise.all([
+      findRepoLevelAgentsMd(this.repoPath),
+      globAllAgentsMdPaths(this.repoPath),
+    ]);
+
+    const agentsMdContext: AgentsMdContext = {
+      repoPath: this.repoPath,
+      agentsMdPaths,
+      loadedPaths: new Set<string>(repoLevel ? [repoLevel.absolutePath] : []),
+      processedDirs: new Set<string>(),
+    };
+
     const context: ToolContext = {
       readFiles: new Map(),
       onEditRequested: this.callbacks.onEditRequested,
       onBashRequested: this.callbacks.onBashRequested,
+      injectContext: (absolutePath: string) =>
+        collectDirectoryContexts(absolutePath, agentsMdContext),
     };
     this.emittedToolCallIds.clear();
 
@@ -135,6 +156,7 @@ export class ConflictResolutionAgent extends BaseAgent {
         workingDirectory: this.repoPath,
       },
       mergeInfo,
+      ...(repoLevel ? { agentsMdContent: repoLevel.content } : {}),
     });
 
     const userPrompt = dedent`
