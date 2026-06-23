@@ -42,7 +42,10 @@ export async function collectDirectoryContexts(
     context.processedDirs.add(dir);
 
     const candidate = path.join(dir, AGENTS_MD_FILENAME);
-    if (context.agentsMdPaths.has(candidate) && !context.loadedPaths.has(candidate)) {
+    if (
+      context.agentsMdPaths.has(candidate) &&
+      !context.loadedPaths.has(candidate)
+    ) {
       const content = await fs.readFile(candidate, 'utf-8');
       context.loadedPaths.add(candidate);
       const relativePath = path.relative(context.repoPath, candidate);
