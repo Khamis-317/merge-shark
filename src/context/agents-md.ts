@@ -46,12 +46,16 @@ export async function collectDirectoryContexts(
       context.agentsMdPaths.has(candidate) &&
       !context.loadedPaths.has(candidate)
     ) {
-      const content = await fs.readFile(candidate, 'utf-8');
-      context.loadedPaths.add(candidate);
-      const relativePath = path.relative(context.repoPath, candidate);
-      collected.push(
-        `<project-context source="${relativePath}">\n${content}\n</project-context>`
-      );
+      try {
+        const content = await fs.readFile(candidate, 'utf-8');
+        context.loadedPaths.add(candidate);
+        const relativePath = path.relative(context.repoPath, candidate);
+        collected.push(
+          `<project-context source="${relativePath}">\n${content}\n</project-context>`
+        );
+      } catch {
+        // Avoid letting an unreachable AGENTS.md crash the parent tool call
+      }
     }
 
     if (dir === context.repoPath) break;
