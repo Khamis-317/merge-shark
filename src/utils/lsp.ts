@@ -228,11 +228,6 @@ export class LSPManager {
     );
   }
 
-  /**
-   * Validate a file that has already been persisted on disk.
-   * Reads the file content from disk, sends it to the LSP, waits for
-   * diagnostics, and returns them to the agent.
-   */
   async validate(filePath: string): Promise<string> {
     const absolutePath = path.resolve(filePath);
     const languageId = getLanguageId(absolutePath);

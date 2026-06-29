@@ -70,7 +70,7 @@ export function makeEditTool(
         return `Edit applied successfully.\n\nLSP Validation Result:\n${lspResult}`;
       }
 
-      return 'Edit applied successfully. No LSP available for this file type — consider using bash to verify compilation.';
+      return 'Edit applied successfully. No LSP available for this file type — consider using bash with the appropriate command to verify the edit.';
     },
     {
       name: 'edit',

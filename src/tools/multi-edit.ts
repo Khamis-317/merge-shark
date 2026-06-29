@@ -105,7 +105,7 @@ export function makeMultiEditTool(
         return `${successMessage}\n\nLSP Validation Result:\n${lspResult}`;
       }
 
-      return `${successMessage}. No LSP available for this file type — consider using bash to verify compilation.`;
+      return `${successMessage}. No LSP available for this file type — consider using bash with the appropriate command to verify the edit.`;
     },
     {
       name: 'multiedit',
