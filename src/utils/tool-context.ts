@@ -11,6 +11,7 @@ export interface BashCommandRequest {
 export interface BaseToolContext {
   // Map of absolute file paths to their modification time when last read
   readFiles: Map<string, Date>;
+  injectContext?: (absolutePath: string) => Promise<string>;
 }
 export interface ToolContext extends BaseToolContext {
   // Callback to request edit approval from the user

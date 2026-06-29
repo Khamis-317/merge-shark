@@ -10,6 +10,7 @@ export interface SystemInfo {
 export interface SystemPromptOptions {
   systemInfo: SystemInfo;
   mergeInfo?: string | null;
+  agentsMdContent?: string;
 }
 
 function createMergeContext(mergeInfo?: string | null) {
@@ -26,6 +27,14 @@ function createMergeContext(mergeInfo?: string | null) {
     Note: If this section is missing, the operation might be a rebase rather than a merge.
     </merge_context>
 
+    `;
+}
+
+function createAgentsMdSection(content: string) {
+  return dedent`
+    <project-context source="AGENTS.md">
+    ${content}
+    </project-context>
     `;
 }
 
@@ -147,6 +156,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     Date: ${formatDate(options.systemInfo.date)}
     Current working directory: ${options.systemInfo.workingDirectory}
     </system_information>
+    ${options.agentsMdContent ? createAgentsMdSection(options.agentsMdContent) : ''}
   `;
 
   return prompt;
