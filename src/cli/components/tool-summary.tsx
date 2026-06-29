@@ -6,6 +6,7 @@ import type { LsToolInput } from '../../tools/ls.js';
 import type { RipgrepToolInput } from '../../tools/ripgrep.js';
 import type { GlobToolInput } from '../../tools/glob.js';
 import type { BashToolInput } from '../../tools/bash.js';
+import type { UseSkillToolInput } from '../../tools/use-skill.js';
 import chalk from 'chalk';
 import { countLines } from '../../utils/count-lines.js';
 
@@ -23,7 +24,8 @@ type ToolInput =
   | LsToolInput
   | RipgrepToolInput
   | GlobToolInput
-  | BashToolInput;
+  | BashToolInput
+  | UseSkillToolInput;
 
 function formatToolSummary(toolName: string, input: unknown): string {
   const toolInput = input as ToolInput;
@@ -87,6 +89,11 @@ function formatToolSummary(toolName: string, input: unknown): string {
           (explorerInput.goal.length > 60 ? '…' : '')
         : 'codebase';
       return `Exploring: ${goalPreview}`;
+    }
+
+    case 'use_skill': {
+      const skillInput = toolInput as UseSkillToolInput;
+      return `Loading skill: ${skillInput.name}`;
     }
 
     default:
