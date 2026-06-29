@@ -19,6 +19,16 @@ const args = parseArgs({
       type: 'boolean',
       short: 'y',
     },
+    jdtls: {
+      default: undefined,
+      type: 'string',
+      short: 'j',
+    },
+    jdltlsDataPath: {
+      default: undefined,
+      type: 'string',
+      short: 'd',
+    },
   },
 });
 
@@ -26,5 +36,7 @@ const model = models[args.values.model] ?? models['gemini-3-flash']!;
 
 const repoPath = args.values.repo;
 const yolo = args.values.yolo;
+const jdtlsPath = args.values.jdtls;
+const jdltlsDataPath = args.values.jdltlsDataPath;
 
-await start(repoPath, model, yolo);
+await start(repoPath, model, yolo, jdtlsPath, jdltlsDataPath);
