@@ -68,12 +68,16 @@ export interface UseAgentResolutionOptions {
   repoPath: string;
   llm: LanguageModelLike;
   yolo?: boolean;
+  jdtlsPath?: string;
+  jdltlsDataPath?: string;
 }
 
 export function useAgentResolution({
   repoPath,
   llm,
   yolo = false,
+  jdtlsPath,
+  jdltlsDataPath,
 }: UseAgentResolutionOptions) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [subAgentPanes, setSubAgentPanes] = useState<SubAgentPane[]>([]);
@@ -88,210 +92,221 @@ export function useAgentResolution({
   const [todos, setTodos] = useState<TodoItem[]>([]);
 
   useEffect(() => {
-    const agent = new ConflictResolutionAgent(repoPath, llm, {
-      onMessageChunk: (chunk, subAgentId) => {
-        setEvents((prev) => {
-          const existingIndex = prev.findIndex(
-            (e) => e.type === 'message' && e.id === chunk.id
-          );
-
-          if (existingIndex >= 0) {
-            // Update existing message
-            const existing = prev[existingIndex] as Extract<
-              StreamEvent,
-              { type: 'message' }
-            >;
-            return prev.map((e, i) =>
-              i === existingIndex
-                ? { ...existing, content: existing.content + chunk.text }
-                : e
+    const agent = new ConflictResolutionAgent(
+      repoPath,
+      llm,
+      {
+        onMessageChunk: (chunk, subAgentId) => {
+          setEvents((prev) => {
+            const existingIndex = prev.findIndex(
+              (e) => e.type === 'message' && e.id === chunk.id
             );
+
+            if (existingIndex >= 0) {
+              // Update existing message
+              const existing = prev[existingIndex] as Extract<
+                StreamEvent,
+                { type: 'message' }
+              >;
+              return prev.map((e, i) =>
+                i === existingIndex
+                  ? { ...existing, content: existing.content + chunk.text }
+                  : e
+              );
+            }
+
+            // Add new message
+            return [
+              ...prev,
+              {
+                type: 'message' as const,
+                id: chunk.id,
+                content: chunk.text,
+                subAgentId,
+              },
+            ];
+          });
+        },
+
+        onReasoningChunk: (chunk, subAgentId) => {
+          setEvents((prev) => {
+            const existingIndex = prev.findIndex(
+              (e) => e.type === 'thinking' && e.id === chunk.id
+            );
+
+            if (existingIndex >= 0) {
+              // Update existing thinking block
+              const existing = prev[existingIndex] as Extract<
+                StreamEvent,
+                { type: 'thinking' }
+              >;
+              return prev.map((e, i) =>
+                i === existingIndex
+                  ? { ...existing, content: existing.content + chunk.text }
+                  : e
+              );
+            }
+
+            // Add new thinking block
+            return [
+              ...prev,
+              {
+                type: 'thinking' as const,
+                id: chunk.id,
+                content: chunk.text,
+                startTime: Date.now(),
+                isComplete: false,
+                subAgentId,
+              },
+            ];
+          });
+        },
+
+        onToolStart: (info, subAgentId) => {
+          const callId = info.callId || `${info.toolName}-${Date.now()}`;
+
+          if (!subAgentId && info.toolName === 'codebase_explorer') {
+            setSubAgentPanes((prev) => [
+              ...prev,
+              {
+                paneNumber: prev.length + 1,
+                callId,
+                goal: (info.input as { goal?: string })?.goal ?? 'Exploring...',
+                status: 'running',
+              },
+            ]);
           }
 
-          // Add new message
-          return [
-            ...prev,
-            {
-              type: 'message' as const,
-              id: chunk.id,
-              content: chunk.text,
-              subAgentId,
-            },
-          ];
-        });
-      },
+          setEvents((prev) => {
+            // Mark any active thinking as complete
+            const updatedEvents = prev.map((event) =>
+              event.type === 'thinking' && !event.isComplete
+                ? { ...event, isComplete: true }
+                : event
+            );
 
-      onReasoningChunk: (chunk, subAgentId) => {
-        setEvents((prev) => {
-          const existingIndex = prev.findIndex(
-            (e) => e.type === 'thinking' && e.id === chunk.id
-          );
+            // Add new tool call
+            return [
+              ...updatedEvents,
+              {
+                type: 'tool' as const,
+                callId,
+                name: info.toolName,
+                input: info.input,
+                output: null,
+                state: { status: 'running' },
+                subAgentId,
+              },
+            ];
+          });
+        },
 
-          if (existingIndex >= 0) {
-            // Update existing thinking block
-            const existing = prev[existingIndex] as Extract<
-              StreamEvent,
-              { type: 'thinking' }
-            >;
-            return prev.map((e, i) =>
-              i === existingIndex
-                ? { ...existing, content: existing.content + chunk.text }
-                : e
+        onToolEnd: (info, subAgentId) => {
+          const callId = info.callId || `${info.toolName}-${Date.now()}`;
+          if (!subAgentId && info.toolName === 'codebase_explorer') {
+            setSubAgentPanes((prev) =>
+              prev.map((pane) =>
+                pane.callId === callId
+                  ? { ...pane, status: info.isError ? 'failed' : 'complete' }
+                  : pane
+              )
             );
           }
-
-          // Add new thinking block
-          return [
-            ...prev,
-            {
-              type: 'thinking' as const,
-              id: chunk.id,
-              content: chunk.text,
-              startTime: Date.now(),
-              isComplete: false,
-              subAgentId,
-            },
-          ];
-        });
-      },
-
-      onToolStart: (info, subAgentId) => {
-        const callId = info.callId || `${info.toolName}-${Date.now()}`;
-
-        if (!subAgentId && info.toolName === 'codebase_explorer') {
-          setSubAgentPanes((prev) => [
-            ...prev,
-            {
-              paneNumber: prev.length + 1,
-              callId,
-              goal: (info.input as { goal?: string })?.goal ?? 'Exploring...',
-              status: 'running',
-            },
-          ]);
-        }
-
-        setEvents((prev) => {
-          // Mark any active thinking as complete
-          const updatedEvents = prev.map((event) =>
-            event.type === 'thinking' && !event.isComplete
-              ? { ...event, isComplete: true }
-              : event
-          );
-
-          // Add new tool call
-          return [
-            ...updatedEvents,
-            {
-              type: 'tool' as const,
-              callId,
-              name: info.toolName,
-              input: info.input,
-              output: null,
-              state: { status: 'running' },
-              subAgentId,
-            },
-          ];
-        });
-      },
-
-      onToolEnd: (info, subAgentId) => {
-        const callId = info.callId || `${info.toolName}-${Date.now()}`;
-        if (!subAgentId && info.toolName === 'codebase_explorer') {
-          setSubAgentPanes((prev) =>
-            prev.map((pane) =>
-              pane.callId === callId
-                ? { ...pane, status: info.isError ? 'failed' : 'complete' }
-                : pane
+          const status = info.isError
+            ? ('failed' as const)
+            : ('complete' as const);
+          setEvents((prev) =>
+            prev.map((event) =>
+              event.type === 'tool' && event.callId === callId
+                ? {
+                    ...event,
+                    output: info.output,
+                    state: { status },
+                    subAgentId,
+                  }
+                : event
             )
           );
-        }
-        const status = info.isError
-          ? ('failed' as const)
-          : ('complete' as const);
-        setEvents((prev) =>
-          prev.map((event) =>
-            event.type === 'tool' && event.callId === callId
-              ? { ...event, output: info.output, state: { status }, subAgentId }
-              : event
-          )
-        );
+        },
+
+        onEditRequested: async (edit) => {
+          // Auto-approve in yolo mode
+          if (yolo) {
+            return { approved: true };
+          }
+
+          setEvents((prev) => {
+            const lastIndex = prev.length - 1;
+            const lastEvent = prev[lastIndex];
+
+            if (!lastEvent || lastEvent.type !== 'tool') return prev;
+
+            return [
+              ...prev.slice(0, lastIndex),
+              {
+                ...lastEvent,
+                state: { status: 'awaiting-edit-approval', edit },
+              },
+            ];
+          });
+
+          // Return a promise that will be resolved when the user approves/rejects
+          return new Promise<ApprovalResult>((resolve) => {
+            setStatus('awaiting-approval');
+            setApprovalResolver(() => resolve);
+          });
+        },
+
+        onBashRequested: async (request) => {
+          // Auto-approve in yolo mode
+          if (yolo) {
+            return { approved: true };
+          }
+
+          setEvents((prev) => {
+            const lastIndex = prev.length - 1;
+            const lastEvent = prev[lastIndex];
+
+            if (!lastEvent || lastEvent.type !== 'tool') return prev;
+
+            return [
+              ...prev.slice(0, lastIndex),
+              {
+                ...lastEvent,
+                state: { status: 'awaiting-bash-approval', request },
+              },
+            ];
+          });
+
+          // Return a promise that will be resolved when the user approves/rejects
+          return new Promise<ApprovalResult>((resolve) => {
+            setStatus('awaiting-approval');
+            setApprovalResolver(() => resolve);
+          });
+        },
+
+        onTodoUpdate: (updatedTodos: TodoItem[]) => {
+          setTodos(updatedTodos);
+          setEvents((prev) => {
+            // Remove previous todo event if exists and add new one
+            const filteredEvents = prev.filter((e) => e.type !== 'todo');
+            return [
+              ...filteredEvents,
+              {
+                type: 'todo' as const,
+                todos: updatedTodos,
+              },
+            ];
+          });
+        },
       },
-
-      onEditRequested: async (edit) => {
-        // Auto-approve in yolo mode
-        if (yolo) {
-          return { approved: true };
-        }
-
-        setEvents((prev) => {
-          const lastIndex = prev.length - 1;
-          const lastEvent = prev[lastIndex];
-
-          if (!lastEvent || lastEvent.type !== 'tool') return prev;
-
-          return [
-            ...prev.slice(0, lastIndex),
-            {
-              ...lastEvent,
-              state: { status: 'awaiting-edit-approval', edit },
-            },
-          ];
-        });
-
-        // Return a promise that will be resolved when the user approves/rejects
-        return new Promise<ApprovalResult>((resolve) => {
-          setStatus('awaiting-approval');
-          setApprovalResolver(() => resolve);
-        });
-      },
-
-      onBashRequested: async (request) => {
-        // Auto-approve in yolo mode
-        if (yolo) {
-          return { approved: true };
-        }
-
-        setEvents((prev) => {
-          const lastIndex = prev.length - 1;
-          const lastEvent = prev[lastIndex];
-
-          if (!lastEvent || lastEvent.type !== 'tool') return prev;
-
-          return [
-            ...prev.slice(0, lastIndex),
-            {
-              ...lastEvent,
-              state: { status: 'awaiting-bash-approval', request },
-            },
-          ];
-        });
-
-        // Return a promise that will be resolved when the user approves/rejects
-        return new Promise<ApprovalResult>((resolve) => {
-          setStatus('awaiting-approval');
-          setApprovalResolver(() => resolve);
-        });
-      },
-
-      onTodoUpdate: (updatedTodos: TodoItem[]) => {
-        setTodos(updatedTodos);
-        setEvents((prev) => {
-          // Remove previous todo event if exists and add new one
-          const filteredEvents = prev.filter((e) => e.type !== 'todo');
-          return [
-            ...filteredEvents,
-            {
-              type: 'todo' as const,
-              todos: updatedTodos,
-            },
-          ];
-        });
-      },
-    });
+      jdtlsPath,
+      jdltlsDataPath
+    );
 
     // Run the agent
     const runAgent = async () => {
-      // Set up memory (optional — failures are non-fatal)
+      // Set up memory
       const memory = new ConflictRepository();
       try {
         await memory.connect();

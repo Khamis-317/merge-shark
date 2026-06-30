@@ -15,6 +15,7 @@ import { makeLsTool } from '../tools/ls.js';
 import { makeRipgrepTool } from '../tools/ripgrep.js';
 import { makeGlobTool } from '../tools/glob.js';
 import { makeBashTool } from '../tools/bash.js';
+import { makeLspValidationTool } from '../tools/lsp-validation.js';
 import { makeCodebaseExplorerTool } from '../tools/codebase-explorer.js';
 import {
   makeManageTodoTool,
@@ -26,6 +27,7 @@ import {
   gitMergeBase,
   formatMergeInfo,
 } from '../utils/git-utils.js';
+import { LSPManager } from '../utils/lsp.js';
 import { dedent } from '../utils/dedent.js';
 import { BaseAgent, type BaseAgentCallbacks } from './base-agent.js';
 import {
@@ -73,14 +75,18 @@ export interface ConflictAgentCallbacks extends BaseAgentCallbacks {
 
 export class ConflictResolutionAgent extends BaseAgent {
   private edits: FileEditOptions[] = [];
+  private lspManager: LSPManager;
 
   constructor(
     repoPath: string,
     llm: LanguageModelLike,
     protected override callbacks: ConflictAgentCallbacks,
+    jdtlsPath?: string,
+    jdltlsDataPath?: string,
     public memory?: ConflictRepository
   ) {
-    super(repoPath, llm, callbacks);
+    super(repoPath, llm, callbacks, jdtlsPath, jdltlsDataPath);
+    this.lspManager = new LSPManager(repoPath, jdtlsPath, jdltlsDataPath);
   }
 
   getEdits(): FileEditOptions[] {
@@ -93,6 +99,15 @@ export class ConflictResolutionAgent extends BaseAgent {
   }
 
   async run(): Promise<FileEditOptions[]> {
+    try {
+      return await this.resolveConflicts();
+    } finally {
+      // Ensure LSP processes are cleaned up regardless of success or failure
+      await this.lspManager.shutdown();
+    }
+  }
+
+  private async resolveConflicts(): Promise<FileEditOptions[]> {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
 
     const [repoLevel, agentsMdPaths] = await Promise.all([
@@ -145,10 +160,11 @@ export class ConflictResolutionAgent extends BaseAgent {
 
     const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
-      makeEditTool(this.repoPath, this.edits, context),
+      makeEditTool(this.repoPath, this.edits, context, this.lspManager),
       makeLsTool(this.repoPath),
       makeRipgrepTool(this.repoPath),
       makeGlobTool(this.repoPath),
+      makeLspValidationTool(this.repoPath, this.lspManager),
       makeBashTool(this.repoPath, context),
       makeManageTodoTool({
         onTodoUpdate: this.callbacks.onTodoUpdate,

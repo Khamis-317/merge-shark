@@ -7,20 +7,26 @@ AI-powered Git conflict resolver.
 ## Setup
 
 1. Install NPM packages.
+
    ```bash
    npm install
    ```
 2. Setup your `GOOGLE_API_KEY` in the `.env` file.
+
    ```
    GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY
    ```
-3. Build the CLI.
+3. Setup the `TAVILY_API_KEY` in the `.env` file.
+
+   ```
+   TAVILY_API_KEY=SOME_API_KEY
+   ```
+4. Build and run the CLI.
+
    ```bash
-   npm run build
-   ```
-4. Run the CLI.
-   ```
-   npm run start -- --repo /path/to/git/repo
+   npm run dev -- -- -r {PATH_TO_REPO} -m {LLM_MODEL} -e {EMBEDDING_MODEL} \
+   -j {PATH_TO_JDTLS} \ # Must be parsed only when working with java.
+   -d {JDTLS_DATA_PATH} # Optional ->>> defaults to creating a tmp directory within Merge-Shark's project root directory
    ```
 
 ## Tooling
