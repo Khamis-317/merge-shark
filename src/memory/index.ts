@@ -9,3 +9,4 @@ export {
   extractAllConflicts,
   type ParsedConflict,
 } from '../utils/parse-conflicts.js';
+export { queryPreviousResolutions } from './retrieval.js';
