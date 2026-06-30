@@ -31,7 +31,7 @@ export const embeddingModels: Record<string, EmbeddingModel> = {
     ),
     dimensions: 768,
   },
-  'google/gemini-embedding-001': {
+  'gemini-embedding-001': {
     factory: openRouterModelFactory('google/gemini-embedding-001', 768),
     dimensions: 768,
   },

@@ -5,7 +5,7 @@ import { ConflictRepository, type Conflict } from './db.js';
 import { createEmbedding } from './embedder.js';
 import { extractAllConflicts } from '../utils/parse-conflicts.js';
 
-export function formatPastResolution(record: Conflict): string {
+export function formatPreviousResolution(record: Conflict): string {
   return dedent`
     <resolution file_type="${record.fileType}" resolved_at="${record.resolvedAt}">
     <conflict>
@@ -57,7 +57,7 @@ export async function queryPreviousResolutions(
         for (const record of similar) {
           if (seenIds.has(record.id)) continue;
           seenIds.add(record.id);
-          blocks.push(formatPastResolution(record));
+          blocks.push(formatPreviousResolution(record));
         }
       } catch {
         continue;
