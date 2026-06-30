@@ -28,6 +28,14 @@ import {
 } from '../utils/git-utils.js';
 import { dedent } from '../utils/dedent.js';
 import { BaseAgent, type BaseAgentCallbacks } from './base-agent.js';
+import {
+  ConflictRepository,
+  createEmbedding,
+  extractAllConflicts,
+  type Conflict,
+} from '../memory/index.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
@@ -73,13 +81,76 @@ export class ConflictResolutionAgent extends BaseAgent {
   constructor(
     repoPath: string,
     llm: LanguageModelLike,
-    protected override callbacks: ConflictAgentCallbacks
+    protected override callbacks: ConflictAgentCallbacks,
+    public memory?: ConflictRepository
   ) {
     super(repoPath, llm, callbacks);
   }
 
   getEdits(): FileEditOptions[] {
     return this.edits;
+  }
+
+  private async queryPreviousResolutions(
+    conflictingFiles: string[]
+  ): Promise<string | null> {
+    const blocks: string[] = [];
+    const seenIds = new Set<string>();
+
+    for (const file of conflictingFiles) {
+      const absolutePath = path.resolve(this.repoPath, file);
+      let content: string;
+      try {
+        content = await fs.readFile(absolutePath, 'utf-8');
+      } catch {
+        continue;
+      }
+
+      const conflicts = extractAllConflicts(content);
+      const fileType = path.extname(file).slice(1);
+      if (!fileType || conflicts.length === 0) continue;
+
+      for (const conflict of conflicts) {
+        const conflictText = `${conflict.baseChange}\n${conflict.incomingChange}`;
+        let vector: number[];
+        try {
+          vector = await createEmbedding(conflictText);
+        } catch {
+          continue;
+        }
+
+        try {
+          const similar = await this.memory!.findSimilar(vector, fileType, 3);
+          for (const record of similar) {
+            if (seenIds.has(record.id)) continue;
+            seenIds.add(record.id);
+            blocks.push(this.formatPastResolution(record));
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    if (blocks.length === 0) return null;
+    return blocks.join('\n');
+  }
+
+  private formatPastResolution(record: Conflict): string {
+    return dedent`
+      <resolution file_type="${record.fileType}" resolved_at="${record.resolvedAt}">
+      <conflict>
+        Base change:
+        ${record.baseChange}
+
+        Incoming change:
+        ${record.incomingChange}
+      </conflict>
+      <outcome>
+        ${record.resolution}
+      </outcome>
+      </resolution>
+      `;
   }
 
   // prevent the internal todo tool from streaming callbacks
@@ -124,6 +195,16 @@ export class ConflictResolutionAgent extends BaseAgent {
       );
     }
 
+    // Query past resolutions from memory
+    let pastResolutions: string | null = null;
+    if (this.memory) {
+      try {
+        pastResolutions = await this.queryPreviousResolutions(conflictingFiles);
+      } catch (e) {
+        console.log('Failed to query past resolutions:', e);
+      }
+    }
+
     const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context),
@@ -157,6 +238,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       },
       mergeInfo,
       ...(repoLevel ? { agentsMdContent: repoLevel.content } : {}),
+      ...(pastResolutions ? { pastResolutions } : {}),
     });
 
     const userPrompt = dedent`

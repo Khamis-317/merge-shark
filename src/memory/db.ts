@@ -56,8 +56,10 @@ export class ConflictRepository implements IConflictRepository {
     if (!tables.includes(this.tableName)) return [];
 
     const table = await this.db.openTable(this.tableName);
-    const results: Conflict[] = await table
-      .search(vector)
+    const results: Conflict[] = await (
+      table.search(vector) as lancedb.VectorQuery
+    )
+      .distanceType('cosine')
       .where(`fileType = "${fileType}"`)
       .limit(limit)
       .toArray();
