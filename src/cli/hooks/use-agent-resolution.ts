@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/conflict-resolution-agent.js';
+import {
+  ConflictRepository,
+  getEmbedder,
+  parseConflictBlock,
+  type Conflict,
+} from '../../memory/index.js';
+import { gitCurrentBranch } from '../../utils/git-utils.js';
 import type { FileEditOptions } from '../../utils/edit-file.js';
 import type {
   ApprovalResult,
@@ -7,6 +14,8 @@ import type {
 } from '../../utils/tool-context.js';
 import type { TodoItem } from '../../tools/manage-todo.js';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 export type ToolState =
   | { status: 'running' | 'complete' | 'failed' }
@@ -297,6 +306,18 @@ export function useAgentResolution({
 
     // Run the agent
     const runAgent = async () => {
+      // Set up memory
+      const memory = new ConflictRepository(
+        undefined,
+        getEmbedder() ?? undefined
+      );
+      try {
+        await memory.connect();
+        agent.memory = memory;
+      } catch {
+        // If memory not available, continue without past resolution context
+      }
+
       try {
         const resolvedEdits = await agent.run();
         setEdits(resolvedEdits);
@@ -310,6 +331,50 @@ export function useAgentResolution({
               : e
           )
         );
+
+        // Save resolved conflicts to memory
+        if (agent.memory) {
+          // Resolve "HEAD" refs to the actual branch name
+          let currentBranch: string | null = null;
+          try {
+            const name = await gitCurrentBranch(repoPath);
+            if (name !== 'HEAD') currentBranch = name;
+          } catch {
+            // Not a git repo or detached HEAD, then keep "HEAD" as-is
+          }
+
+          for (const edit of resolvedEdits) {
+            try {
+              const parsed = parseConflictBlock(edit.oldText);
+              if (!parsed) continue;
+
+              const fileType = path.extname(edit.path).slice(1);
+
+              const conflict: Conflict = {
+                id: randomUUID(),
+                content: parsed.content,
+                embedding: [],
+                baseBranch:
+                  currentBranch && parsed.baseBranch === 'HEAD'
+                    ? currentBranch
+                    : parsed.baseBranch,
+                incomingBranch:
+                  currentBranch && parsed.incomingBranch === 'HEAD'
+                    ? currentBranch
+                    : parsed.incomingBranch,
+                baseChange: parsed.baseChange,
+                incomingChange: parsed.incomingChange,
+                resolution: edit.newText,
+                resolvedAt: new Date().toISOString(),
+                fileType,
+              };
+
+              await agent.memory.save(conflict);
+            } catch {
+              // Ignore failures to save individual conflicts, continue with others
+            }
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
         setStatus('complete');

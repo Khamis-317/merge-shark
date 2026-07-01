@@ -11,6 +11,7 @@ export interface SystemPromptOptions {
   systemInfo: SystemInfo;
   mergeInfo?: string | null;
   agentsMdContent?: string;
+  pastResolutions?: string;
 }
 
 function createMergeContext(mergeInfo?: string | null) {
@@ -35,6 +36,18 @@ function createAgentsMdSection(content: string) {
     <project-context source="AGENTS.md">
     ${content}
     </project-context>
+    `;
+}
+
+function createPastResolutionsSection(content: string) {
+  return dedent`
+    <similar_past_resolutions>
+    The following past conflict resolutions on similar code may be relevant:
+
+    ${content}
+
+    Use these as reference, but adapt the resolution to the specific context of the current conflict.
+    </similar_past_resolutions>
     `;
 }
 
@@ -157,6 +170,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     Current working directory: ${options.systemInfo.workingDirectory}
     </system_information>
     ${options.agentsMdContent ? createAgentsMdSection(options.agentsMdContent) : ''}
+    ${options.pastResolutions ? createPastResolutionsSection(options.pastResolutions) : ''}
   `;
 
   return prompt;

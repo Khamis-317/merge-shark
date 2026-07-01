@@ -42,6 +42,23 @@ export async function gitMergeBase(
 }
 
 /**
+ * Gets the current branch name for the repository.
+ *
+ * @param repoPath The absolute path to the git repository.
+ * @returns The current branch name (e.g. "main"), or "HEAD" in detached state.
+ */
+export async function gitCurrentBranch(repoPath: string): Promise<string> {
+  const command: string = 'git rev-parse --abbrev-ref HEAD';
+  const result = await exec(command, { cwd: repoPath });
+
+  if (result.stderr) {
+    throw new Error(result.stderr);
+  }
+
+  return result.stdout.toString().trim();
+}
+
+/**
  * Retrieves detailed information about the last commits that modified a specific file.
  *
  * @param repoPath The absolute path to the git repository.

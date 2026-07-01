@@ -30,6 +30,10 @@ import {
 import { LSPManager } from '../utils/lsp.js';
 import { dedent } from '../utils/dedent.js';
 import { BaseAgent, type BaseAgentCallbacks } from './base-agent.js';
+import {
+  ConflictRepository,
+  queryPreviousResolutions,
+} from '../memory/index.js';
 
 import type { ToolContext } from '../utils/tool-context.js';
 import type { FileEditOptions } from '../utils/edit-file.js';
@@ -78,7 +82,8 @@ export class ConflictResolutionAgent extends BaseAgent {
     llm: LanguageModelLike,
     protected override callbacks: ConflictAgentCallbacks,
     jdtlsPath?: string,
-    jdltlsDataPath?: string
+    jdltlsDataPath?: string,
+    public memory?: ConflictRepository
   ) {
     super(repoPath, llm, callbacks, jdtlsPath, jdltlsDataPath);
     this.lspManager = new LSPManager(repoPath, jdtlsPath, jdltlsDataPath);
@@ -139,6 +144,20 @@ export class ConflictResolutionAgent extends BaseAgent {
       );
     }
 
+    // Query past resolutions from memory
+    let pastResolutions: string | null = null;
+    if (this.memory) {
+      try {
+        pastResolutions = await queryPreviousResolutions(
+          this.memory,
+          this.repoPath,
+          conflictingFiles
+        );
+      } catch (e) {
+        console.log('Failed to query past resolutions:', e);
+      }
+    }
+
     const tools: StructuredToolInterface[] = [
       makeReadTool(this.repoPath, context),
       makeEditTool(this.repoPath, this.edits, context, this.lspManager),
@@ -173,6 +192,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       },
       mergeInfo,
       ...(repoLevel ? { agentsMdContent: repoLevel.content } : {}),
+      ...(pastResolutions ? { pastResolutions } : {}),
     });
 
     const userPrompt = dedent`
