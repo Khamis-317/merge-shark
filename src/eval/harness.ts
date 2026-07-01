@@ -1,7 +1,6 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec, execFile } from 'node:child_process';
@@ -72,19 +71,7 @@ function extractTokenUsage(response: unknown): TokenUsage {
 }
 
 export async function runSnippetMode(evalCase: EvalCase, modelName: string): Promise<HarnessResult> {
-  let model: BaseChatModel;
-  
-  if (modelName.startsWith('gemini')) {
-    model = new ChatGoogleGenerativeAI({
-      model: modelName,
-      temperature: 0.1,
-    });
-  } else {
-    model = new ChatOpenAI({
-      model: modelName,
-      temperature: 0.1,
-    });
-  }
+  const model = createEvalModel(modelName);
 
   const prompt = PromptTemplate.fromTemplate(dedent`
     You are an expert in code merge conflicts. Please resolve the following conflict.
@@ -107,7 +94,7 @@ export async function runSnippetMode(evalCase: EvalCase, modelName: string): Pro
   const response = await model.invoke(formattedPrompt);
   const durationMs = Date.now() - startTime;
 
-  const content = extractTextContent(response.content);
+  const content = extractTextContent(isRecord(response) && 'content' in response ? response['content'] : response);
   const resolution = extractResolution(content);
   const tokenUsage = extractTokenUsage(response);
 

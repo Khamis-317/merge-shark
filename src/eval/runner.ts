@@ -12,6 +12,7 @@ import { evaluateRag, resolveExpectedFiles } from './metrics/rag.js';
 import type { DatasetAlias, DatasetName, EvalResult, HarnessResult, RagResult, SemanticResult, SyntaxResult } from './types.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import fs from 'node:fs/promises';
 
 const execFileAsync = promisify(execFile);
 
@@ -26,6 +27,7 @@ export async function runEvaluation(options: {
   judgeModel?: string;
   limit?: number;
   mode: 'snippet' | 'full-repo';
+  cleanupWorktrees?: boolean;
 }): Promise<EvalResult[]> {
   let adapter: DatasetAdapter;
   const dataset = normalizeDatasetName(options.dataset);
@@ -179,6 +181,10 @@ export async function runEvaluation(options: {
       overallScore
     };
     results.push(result);
+
+    if (options.cleanupWorktrees && options.mode === 'full-repo') {
+      await cleanupWorktree(evalCase);
+    }
   }
 
   return results;
@@ -227,4 +233,13 @@ function fullRepoScore(markersClean: boolean, compiles?: boolean, lints?: boolea
   if (compiles === true) score += SCORE_WEIGHT_COMPILES;
   if (lints === true) score += SCORE_WEIGHT_LINTS;
   return score;
+}
+
+async function cleanupWorktree(evalCase: { metadata: Record<string, unknown> }): Promise<void> {
+  const workingRepoPath = evalCase.metadata['workingRepoPath'];
+  if (typeof workingRepoPath !== 'string' || workingRepoPath.length === 0) {
+    return;
+  }
+
+  await fs.rm(workingRepoPath, { recursive: true, force: true });
 }

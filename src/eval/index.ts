@@ -25,6 +25,7 @@ async function main() {
   let judgeModel: string | undefined;
   let reposDir: string | undefined;
   let datasetPathOverride: string | undefined;
+  let cleanupWorktrees = false;
 
   const readArgValue = (index: number, flag: string): string => {
     const value = args[index + 1];
@@ -103,6 +104,9 @@ async function main() {
       mode = 'full-repo';
       i++;
     }
+    if (arg === '--cleanup-worktrees') {
+      cleanupWorktrees = true;
+    }
   }
 
   const datasetPath = path.resolve(process.cwd(), reposDir ?? datasetPathOverride ?? 'eval_datasets');
@@ -129,7 +133,8 @@ async function main() {
       limit,
       ...(language !== undefined ? { language } : {}),
       ...(conflictType !== undefined ? { type: conflictType } : {}),
-      ...(judgeModel !== undefined ? { judgeModel } : {})
+      ...(judgeModel !== undefined ? { judgeModel } : {}),
+      cleanupWorktrees
     };
 
     const results = await runEvaluation(runOptions);
