@@ -1,6 +1,7 @@
 import type { ToolCallLog } from '../types.js';
 
-export type ToolCategory = 'edit' | 'exploration' | 'verification' | 'command' | 'other';
+export type ToolCategory =
+  'edit' | 'exploration' | 'verification' | 'command' | 'other';
 
 export interface ToolTaxonomy {
   categories: Record<Exclude<ToolCategory, 'command' | 'other'>, string[]>;
@@ -11,13 +12,20 @@ export interface ToolTaxonomy {
 export const DEFAULT_TOOL_TAXONOMY: ToolTaxonomy = {
   categories: {
     edit: ['edit', 'multi_edit', 'multi-edit'],
-    exploration: ['read', 'ls', 'glob', 'ripgrep', 'codebase_explorer', 'codebase-explorer'],
-    verification: ['lsp_validation', 'lsp-validation']
+    exploration: [
+      'read',
+      'ls',
+      'glob',
+      'ripgrep',
+      'codebase_explorer',
+      'codebase-explorer',
+    ],
+    verification: ['lsp_validation', 'lsp-validation'],
   },
   commandToolNames: ['bash', 'shell', 'terminal'],
   verificationCommandPatterns: [
-    /\b(test|check|lint|typecheck|tsc|pytest|mvn|gradle|cargo|go test|npm test|pnpm test|yarn test)\b/i
-  ]
+    /\b(test|check|lint|typecheck|tsc|pytest|mvn|gradle|cargo|go test|npm test|pnpm test|yarn test)\b/i,
+  ],
 };
 
 export function classifyToolCall(
@@ -47,12 +55,20 @@ export function classifyToolCall(
 }
 
 function matchesCategory(toolName: string, knownNames: string[]): boolean {
-  return knownNames.some((knownName) => normalizeToolName(knownName) === toolName);
+  return knownNames.some(
+    (knownName) => normalizeToolName(knownName) === toolName
+  );
 }
 
-function isVerificationCommand(call: ToolCallLog, taxonomy: ToolTaxonomy): boolean {
-  const command = typeof call.args['command'] === 'string' ? call.args['command'] : '';
-  return taxonomy.verificationCommandPatterns.some((pattern) => pattern.test(command));
+function isVerificationCommand(
+  call: ToolCallLog,
+  taxonomy: ToolTaxonomy
+): boolean {
+  const command =
+    typeof call.args['command'] === 'string' ? call.args['command'] : '';
+  return taxonomy.verificationCommandPatterns.some((pattern) =>
+    pattern.test(command)
+  );
 }
 
 function normalizeToolName(toolName: string): string {

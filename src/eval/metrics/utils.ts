@@ -10,7 +10,10 @@ export function createJudgeModel(modelName: string): BaseChatModel {
   }
 
   if (modelName.startsWith('google:')) {
-    return new ChatGoogleGenerativeAI({ model: modelName.slice('google:'.length), temperature: 0 });
+    return new ChatGoogleGenerativeAI({
+      model: modelName.slice('google:'.length),
+      temperature: 0,
+    });
   }
 
   if (modelName.startsWith('gemini')) {
@@ -34,7 +37,10 @@ export function createJudgeModel(modelName: string): BaseChatModel {
   }
 
   if (modelName.startsWith('openai:')) {
-    return new ChatOpenAI({ model: modelName.slice('openai:'.length), temperature: 0 });
+    return new ChatOpenAI({
+      model: modelName.slice('openai:'.length),
+      temperature: 0,
+    });
   }
 
   return new ChatOpenAI({ model: modelName, temperature: 0 });
@@ -43,14 +49,16 @@ export function createJudgeModel(modelName: string): BaseChatModel {
 export function extractTextContent(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
-    return content.map((part) => {
-      if (typeof part === 'string') return part;
-      if (typeof part === 'object' && part !== null && 'text' in part) {
-        const text = (part as { text?: unknown }).text;
-        return typeof text === 'string' ? text : '';
-      }
-      return '';
-    }).join('');
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (typeof part === 'object' && part !== null && 'text' in part) {
+          const text = (part as { text?: unknown }).text;
+          return typeof text === 'string' ? text : '';
+        }
+        return '';
+      })
+      .join('');
   }
   return String(content ?? '');
 }

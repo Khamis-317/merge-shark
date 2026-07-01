@@ -1,11 +1,15 @@
 import { PromptTemplate } from '@langchain/core/prompts';
 import { dedent } from '../../utils/dedent.js';
 import type { EvalCase, RagResult, ToolCallLog } from '../types.js';
-import { createJudgeModel, extractTextContent, parseJsonObject } from './utils.js';
+import {
+  createJudgeModel,
+  extractTextContent,
+  parseJsonObject,
+} from './utils.js';
 
 export function extractAccessedFiles(toolCalls: ToolCallLog[]): Set<string> {
   const accessed = new Set<string>();
-  
+
   for (const call of toolCalls) {
     if (call.toolName === 'read_file' || call.toolName === 'view_file') {
       const absolutePath = call.args['AbsolutePath'];
@@ -14,7 +18,7 @@ export function extractAccessedFiles(toolCalls: ToolCallLog[]): Set<string> {
       if (typeof relativePath === 'string') accessed.add(relativePath);
     }
   }
-  
+
   return accessed;
 }
 
@@ -32,7 +36,10 @@ export function expectedFilesFromMetadata(evalCase: EvalCase): string[] {
   return [...files].map(normalizeFilePath).filter(Boolean);
 }
 
-export async function resolveExpectedFiles(evalCase: EvalCase, options: { judgeModel?: string } = {}): Promise<string[]> {
+export async function resolveExpectedFiles(
+  evalCase: EvalCase,
+  options: { judgeModel?: string } = {}
+): Promise<string[]> {
   const metadataFiles = expectedFilesFromMetadata(evalCase);
   if (metadataFiles.length > 0) {
     return metadataFiles;
@@ -45,21 +52,29 @@ export async function resolveExpectedFiles(evalCase: EvalCase, options: { judgeM
   return inferExpectedFilesWithJudge(evalCase, options.judgeModel);
 }
 
-export function evaluateRag(toolCalls: ToolCallLog[], expectedFiles: string[]): RagResult {
+export function evaluateRag(
+  toolCalls: ToolCallLog[],
+  expectedFiles: string[]
+): RagResult {
   if (expectedFiles.length === 0) return { recall: 0, precision: 0, f1: 0 };
-  
-  const accessed = new Set([...extractAccessedFiles(toolCalls)].map(normalizeFilePath));
+
+  const accessed = new Set(
+    [...extractAccessedFiles(toolCalls)].map(normalizeFilePath)
+  );
   const expected = new Set(expectedFiles.map(normalizeFilePath));
-  
+
   let intersection = 0;
   for (const file of accessed) {
     if (expected.has(file)) intersection++;
   }
-  
+
   const recall = expected.size > 0 ? intersection / expected.size : 0;
   const precision = accessed.size > 0 ? intersection / accessed.size : 0;
-  const f1 = (precision + recall) > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
-  
+  const f1 =
+    precision + recall > 0
+      ? (2 * (precision * recall)) / (precision + recall)
+      : 0;
+
   return { recall, precision, f1 };
 }
 
@@ -80,7 +95,10 @@ function normalizeFilePath(filePath: string): string {
   return filePath.replaceAll('\\', '/').replace(/^\.\//, '').trim();
 }
 
-async function inferExpectedFilesWithJudge(evalCase: EvalCase, judgeModelName: string): Promise<string[]> {
+async function inferExpectedFilesWithJudge(
+  evalCase: EvalCase,
+  judgeModelName: string
+): Promise<string[]> {
   const model = createJudgeModel(judgeModelName);
   const prompt = PromptTemplate.fromTemplate(dedent`
     Identify the repository files that are expected to be read or inspected to resolve this merge conflict.
@@ -107,18 +125,24 @@ async function inferExpectedFilesWithJudge(evalCase: EvalCase, judgeModelName: s
     {conflictText}
     `);
 
-  const response = await model.invoke(await prompt.format({
-    language: evalCase.language,
-    conflictType: evalCase.conflictType ?? 'unknown',
-    metadata: JSON.stringify(evalCase.metadata, null, 2),
-    conflictContext: evalCase.conflictContext ?? 'No additional context provided.',
-    conflictText: evalCase.conflictText
-  }));
+  const response = await model.invoke(
+    await prompt.format({
+      language: evalCase.language,
+      conflictType: evalCase.conflictType ?? 'unknown',
+      metadata: JSON.stringify(evalCase.metadata, null, 2),
+      conflictContext:
+        evalCase.conflictContext ?? 'No additional context provided.',
+      conflictText: evalCase.conflictText,
+    })
+  );
 
   const text = extractTextContent(response.content);
   const parsed = parseJsonObject(text);
   const expectedFiles = parsed?.['expectedFiles'];
   return Array.isArray(expectedFiles)
-    ? expectedFiles.filter((file): file is string => typeof file === 'string').map(normalizeFilePath).filter(Boolean)
+    ? expectedFiles
+        .filter((file): file is string => typeof file === 'string')
+        .map(normalizeFilePath)
+        .filter(Boolean)
     : [];
 }

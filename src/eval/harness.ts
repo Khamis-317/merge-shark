@@ -8,7 +8,12 @@ import { promisify } from 'node:util';
 import { ConflictResolutionAgent } from '../agent/conflict-resolution-agent.js';
 import { models } from '../models/index.js';
 import { dedent } from '../utils/dedent.js';
-import type { EvalCase, HarnessResult, TokenUsage, ToolCallLog } from './types.js';
+import type {
+  EvalCase,
+  HarnessResult,
+  TokenUsage,
+  ToolCallLog,
+} from './types.js';
 import { classifyToolCall } from './metrics/tool-taxonomy.js';
 
 const execFileAsync = promisify(execFile);
@@ -24,7 +29,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readNumber(record: Record<string, unknown> | undefined, key: string): number | undefined {
+function readNumber(
+  record: Record<string, unknown> | undefined,
+  key: string
+): number | undefined {
   const value = record?.[key];
   return typeof value === 'number' ? value : undefined;
 }
@@ -35,15 +43,17 @@ function extractTextContent(content: unknown): string {
   }
 
   if (Array.isArray(content)) {
-    return content.map((part) => {
-      if (typeof part === 'string') {
-        return part;
-      }
-      if (isRecord(part) && typeof part['text'] === 'string') {
-        return part['text'];
-      }
-      return '';
-    }).join('');
+    return content
+      .map((part) => {
+        if (typeof part === 'string') {
+          return part;
+        }
+        if (isRecord(part) && typeof part['text'] === 'string') {
+          return part['text'];
+        }
+        return '';
+      })
+      .join('');
   }
 
   return String(content ?? '');
@@ -56,22 +66,40 @@ function extractResolution(content: string): string {
 
 function extractTokenUsage(response: unknown): TokenUsage {
   const responseRecord = isRecord(response) ? response : undefined;
-  const metadata = isRecord(responseRecord?.['response_metadata']) ? responseRecord['response_metadata'] : undefined;
-  const tokenUsage = isRecord(metadata?.['tokenUsage']) ? metadata['tokenUsage'] : undefined;
-  const usageMetadata = isRecord(responseRecord?.['usage_metadata']) ? responseRecord['usage_metadata'] : undefined;
+  const metadata = isRecord(responseRecord?.['response_metadata'])
+    ? responseRecord['response_metadata']
+    : undefined;
+  const tokenUsage = isRecord(metadata?.['tokenUsage'])
+    ? metadata['tokenUsage']
+    : undefined;
+  const usageMetadata = isRecord(responseRecord?.['usage_metadata'])
+    ? responseRecord['usage_metadata']
+    : undefined;
 
-  const promptTokens = readNumber(tokenUsage, 'promptTokens') ?? readNumber(usageMetadata, 'input_tokens') ?? 0;
-  const completionTokens = readNumber(tokenUsage, 'completionTokens') ?? readNumber(usageMetadata, 'output_tokens') ?? 0;
-  const totalTokens = readNumber(tokenUsage, 'totalTokens') ?? readNumber(usageMetadata, 'total_tokens') ?? promptTokens + completionTokens;
+  const promptTokens =
+    readNumber(tokenUsage, 'promptTokens') ??
+    readNumber(usageMetadata, 'input_tokens') ??
+    0;
+  const completionTokens =
+    readNumber(tokenUsage, 'completionTokens') ??
+    readNumber(usageMetadata, 'output_tokens') ??
+    0;
+  const totalTokens =
+    readNumber(tokenUsage, 'totalTokens') ??
+    readNumber(usageMetadata, 'total_tokens') ??
+    promptTokens + completionTokens;
 
   return {
     promptTokens,
     completionTokens,
-    totalTokens
+    totalTokens,
   };
 }
 
-export async function runSnippetMode(evalCase: EvalCase, modelName: string): Promise<HarnessResult> {
+export async function runSnippetMode(
+  evalCase: EvalCase,
+  modelName: string
+): Promise<HarnessResult> {
   const model = createEvalModel(modelName);
 
   const prompt = PromptTemplate.fromTemplate(dedent`
@@ -87,15 +115,18 @@ export async function runSnippetMode(evalCase: EvalCase, modelName: string): Pro
 
   const formattedPrompt = await prompt.format({
     language: evalCase.language,
-    conflictContext: evalCase.conflictContext || 'No additional context provided.',
-    conflictText: evalCase.conflictText
+    conflictContext:
+      evalCase.conflictContext || 'No additional context provided.',
+    conflictText: evalCase.conflictText,
   });
 
   const startTime = Date.now();
   const response = await model.invoke(formattedPrompt);
   const durationMs = Date.now() - startTime;
 
-  const content = extractTextContent(isRecord(response) && 'content' in response ? response['content'] : response);
+  const content = extractTextContent(
+    isRecord(response) && 'content' in response ? response['content'] : response
+  );
   const resolution = extractResolution(content);
   const tokenUsage = extractTokenUsage(response);
 
@@ -104,23 +135,31 @@ export async function runSnippetMode(evalCase: EvalCase, modelName: string): Pro
     toolCalls: [],
     tokenUsage,
     durationMs,
-    editsFirstTry: true
+    editsFirstTry: true,
   };
 }
 
-export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOptions): Promise<HarnessResult> {
+export async function runFullRepoMode(
+  evalCase: EvalCase,
+  options: FullRepoRunOptions
+): Promise<HarnessResult> {
   if (!evalCase.repoPath) {
     throw new Error(`Full repo case ${evalCase.id} is missing repoPath.`);
   }
 
   const sourceRepoPath = evalCase.repoPath;
-  const runName = options.agent === 'merge-shark' ? options.modelName : options.agent;
-  const workingRepoPath = await copyRepoForRun(sourceRepoPath, evalCase.id, runName);
+  const runName =
+    options.agent === 'merge-shark' ? options.modelName : options.agent;
+  const workingRepoPath = await copyRepoForRun(
+    sourceRepoPath,
+    evalCase.id,
+    runName
+  );
   evalCase.repoPath = workingRepoPath;
   evalCase.metadata = {
     ...evalCase.metadata,
     sourceRepoPath,
-    workingRepoPath
+    workingRepoPath,
   };
 
   if (options.agent !== 'merge-shark') {
@@ -129,7 +168,10 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
 
   const model = createEvalModel(options.modelName);
   const toolCalls: HarnessResult['toolCalls'] = [];
-  const toolCategoriesByCallId = new Map<string, HarnessResult['toolCalls'][number]['category']>();
+  const toolCategoriesByCallId = new Map<
+    string,
+    HarnessResult['toolCalls'][number]['category']
+  >();
   const messages: string[] = [];
   const reasoningChunks: string[] = [];
   const startTime = Date.now();
@@ -145,7 +187,7 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
       const toolCall = withToolCategory({
         toolName: info.toolName,
         args: isRecord(info.input) ? info.input : { input: info.input },
-        ...(info.callId ? { result: `started:${info.callId}` } : {})
+        ...(info.callId ? { result: `started:${info.callId}` } : {}),
       });
       if (info.callId) {
         toolCategoriesByCallId.set(info.callId, toolCall.category);
@@ -153,28 +195,32 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
       toolCalls.push(toolCall);
     },
     onToolEnd: (info) => {
-      const category = info.callId ? toolCategoriesByCallId.get(info.callId) : undefined;
+      const category = info.callId
+        ? toolCategoriesByCallId.get(info.callId)
+        : undefined;
       const toolCall = withToolCategory({
         toolName: info.toolName,
         ...(category ? { category } : {}),
         args: {},
-        result: typeof info.output === 'string' ? info.output : JSON.stringify(info.output),
-        ...(info.isError ? { error: 'tool error' } : {})
+        result:
+          typeof info.output === 'string'
+            ? info.output
+            : JSON.stringify(info.output),
+        ...(info.isError ? { error: 'tool error' } : {}),
       });
       toolCalls.push(toolCall);
     },
     onEditRequested: async () => ({ approved: true }),
     onBashRequested: async () => ({ approved: true }),
-    onTodoUpdate: () => {}
+    onTodoUpdate: () => {},
   });
 
   const edits = await agent.run();
   const durationMs = Date.now() - startTime;
   const resolution = await repoSummary(workingRepoPath);
-  const reasoning = [
-    reasoningChunks.join(''),
-    messages.join('')
-  ].filter(Boolean).join('\n\n');
+  const reasoning = [reasoningChunks.join(''), messages.join('')]
+    .filter(Boolean)
+    .join('\n\n');
 
   return {
     resolution,
@@ -183,16 +229,22 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
     tokenUsage: {
       promptTokens: 0,
       completionTokens: 0,
-      totalTokens: 0
+      totalTokens: 0,
     },
     durationMs,
-    editsFirstTry: edits.length > 0
+    editsFirstTry: edits.length > 0,
   };
 }
 
-async function runCommandAgent(evalCase: EvalCase, workingRepoPath: string, options: FullRepoRunOptions): Promise<HarnessResult> {
+async function runCommandAgent(
+  evalCase: EvalCase,
+  workingRepoPath: string,
+  options: FullRepoRunOptions
+): Promise<HarnessResult> {
   if (!options.command) {
-    throw new Error(`No command configured for external agent ${options.agent}. Pass --agent-command ${options.agent}=<command>.`);
+    throw new Error(
+      `No command configured for external agent ${options.agent}. Pass --agent-command ${options.agent}=<command>.`
+    );
   }
 
   const command = options.command
@@ -200,21 +252,8 @@ async function runCommandAgent(evalCase: EvalCase, workingRepoPath: string, opti
     .replaceAll('{caseId}', shellQuote(evalCase.id));
 
   const startTime = Date.now();
-  let output = '';
-  let error: string | undefined;
-
-  try {
-    const { stdout, stderr } = await execAsync(command, {
-      cwd: workingRepoPath,
-      env: { ...process.env, GIT_EDITOR: 'true' },
-      maxBuffer: 1024 * 1024 * 20
-    });
-    output = [stdout, stderr].filter(Boolean).join('\n');
-  } catch (err: unknown) {
-    const execError = err as { stdout?: string; stderr?: string; message?: string };
-    output = [execError.stdout, execError.stderr].filter(Boolean).join('\n');
-    error = execError.message ?? 'Command agent failed.';
-  }
+  const commandResult = await runExternalCommand(command, workingRepoPath);
+  const { output, error } = commandResult;
 
   const durationMs = Date.now() - startTime;
   const resolution = await repoSummary(workingRepoPath);
@@ -222,27 +261,53 @@ async function runCommandAgent(evalCase: EvalCase, workingRepoPath: string, opti
   return {
     resolution,
     reasoning: output,
-    toolCalls: [withToolCategory({
-      toolName: options.agent,
-      category: 'command',
-      args: { command },
-      result: output,
-      ...(error ? { error } : {})
-    })],
+    toolCalls: [
+      withToolCategory({
+        toolName: options.agent,
+        category: 'command',
+        args: { command },
+        result: output,
+        ...(error ? { error } : {}),
+      }),
+    ],
     tokenUsage: {
       promptTokens: 0,
       completionTokens: 0,
-      totalTokens: 0
+      totalTokens: 0,
     },
     durationMs,
-    editsFirstTry: !error
+    editsFirstTry: !error,
   };
+}
+
+async function runExternalCommand(
+  command: string,
+  workingRepoPath: string
+): Promise<{ output: string; error?: string }> {
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd: workingRepoPath,
+      env: { ...process.env, GIT_EDITOR: 'true' },
+      maxBuffer: 1024 * 1024 * 20,
+    });
+    return { output: [stdout, stderr].filter(Boolean).join('\n') };
+  } catch (err: unknown) {
+    const execError = err as {
+      stdout?: string;
+      stderr?: string;
+      message?: string;
+    };
+    return {
+      output: [execError.stdout, execError.stderr].filter(Boolean).join('\n'),
+      error: execError.message ?? 'Command agent failed.',
+    };
+  }
 }
 
 function withToolCategory(toolCall: ToolCallLog): ToolCallLog {
   return {
     ...toolCall,
-    category: toolCall.category ?? classifyToolCall(toolCall)
+    category: toolCall.category ?? classifyToolCall(toolCall),
   };
 }
 
@@ -263,7 +328,11 @@ function createEvalModel(modelName: string) {
   return new ChatOpenAI({ model: modelName, temperature: 0.1 });
 }
 
-async function copyRepoForRun(repoPath: string, caseId: string, modelName: string): Promise<string> {
+async function copyRepoForRun(
+  repoPath: string,
+  caseId: string,
+  modelName: string
+): Promise<string> {
   const runsDir = path.resolve(process.cwd(), 'eval-worktrees');
   await fs.mkdir(runsDir, { recursive: true });
 
@@ -274,14 +343,16 @@ async function copyRepoForRun(repoPath: string, caseId: string, modelName: strin
 }
 
 function sanitizePathSegment(value: string): string {
-  return value.replace(/[^A-Za-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '') || 'case';
+  return (
+    value.replace(/[^A-Za-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '') || 'case'
+  );
 }
 
 async function repoSummary(repoPath: string): Promise<string> {
   try {
     const [{ stdout: status }, { stdout: diff }] = await Promise.all([
       execFileAsync('git', ['status', '--short'], { cwd: repoPath }),
-      execFileAsync('git', ['diff', '--stat'], { cwd: repoPath })
+      execFileAsync('git', ['diff', '--stat'], { cwd: repoPath }),
     ]);
 
     return [
@@ -289,7 +360,7 @@ async function repoSummary(repoPath: string): Promise<string> {
       'Git status:',
       status.trim() || '(clean)',
       'Diff stat:',
-      diff.trim() || '(no diff)'
+      diff.trim() || '(no diff)',
     ].join('\n');
   } catch {
     return `Working repository: ${repoPath}`;

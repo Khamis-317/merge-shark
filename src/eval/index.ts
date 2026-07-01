@@ -36,7 +36,7 @@ async function main() {
     }
     return value;
   };
-  
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--dataset') {
@@ -60,20 +60,31 @@ async function main() {
       i++;
     }
     if (arg === '--models') {
-      compareModels = readArgValue(i, arg).split(',').map((value) => value.trim()).filter(Boolean);
+      compareModels = readArgValue(i, arg)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
       i++;
     }
     if (arg === '--agents') {
-      compareAgents = readArgValue(i, arg).split(',').map((value) => value.trim()).filter(Boolean);
+      compareAgents = readArgValue(i, arg)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
       i++;
     }
     if (arg === '--agent-command') {
       const commandSpec = readArgValue(i, arg);
       const separatorIndex = commandSpec.indexOf('=');
       if (separatorIndex === -1) {
-        throw new Error(`Expected --agent-command value in the form name=command`);
+        throw new Error(
+          `Expected --agent-command value in the form name=command`
+        );
       }
-      agentCommands.set(commandSpec.slice(0, separatorIndex), commandSpec.slice(separatorIndex + 1));
+      agentCommands.set(
+        commandSpec.slice(0, separatorIndex),
+        commandSpec.slice(separatorIndex + 1)
+      );
       i++;
     }
     if (arg === '--limit') {
@@ -111,16 +122,21 @@ async function main() {
     }
   }
 
-  const datasetPath = path.resolve(process.cwd(), reposDir ?? datasetPathOverride ?? 'eval_datasets');
+  const datasetPath = path.resolve(
+    process.cwd(),
+    reposDir ?? datasetPathOverride ?? 'eval_datasets'
+  );
   const reportDataset = normalizeDatasetName(dataset);
   const runsToExecute = buildRunSpecs({
     model,
     compareModels,
     compareAgents,
-    agentCommands
+    agentCommands,
   });
 
-  console.log(`Starting eval: dataset=${reportDataset}, mode=${mode}, agents=${runsToExecute.map((run) => run.label).join(',')}, judge=${judgeModel}, limit=${limit}`);
+  console.log(
+    `Starting eval: dataset=${reportDataset}, mode=${mode}, agents=${runsToExecute.map((run) => run.label).join(',')}, judge=${judgeModel}, limit=${limit}`
+  );
 
   const comparisonResults = [];
 
@@ -136,16 +152,25 @@ async function main() {
       ...(language !== undefined ? { language } : {}),
       ...(conflictType !== undefined ? { type: conflictType } : {}),
       judgeModel,
-      cleanupWorktrees
+      cleanupWorktrees,
     };
 
     const results = await runEvaluation(runOptions);
     comparisonResults.push({ model: run.label, results });
-    await generateReport(results, { dataset: reportDataset, mode, model: run.label, ...(outDir !== undefined ? { outDir } : {}) });
+    await generateReport(results, {
+      dataset: reportDataset,
+      mode,
+      model: run.label,
+      ...(outDir !== undefined ? { outDir } : {}),
+    });
   }
 
   if (comparisonResults.length > 1) {
-    await generateComparisonReport(comparisonResults, { dataset: reportDataset, mode, ...(outDir !== undefined ? { outDir } : {}) });
+    await generateComparisonReport(comparisonResults, {
+      dataset: reportDataset,
+      mode,
+      ...(outDir !== undefined ? { outDir } : {}),
+    });
   }
 
   console.log('Eval complete.');
@@ -158,27 +183,37 @@ function buildRunSpecs(options: {
   agentCommands: Map<string, string>;
 }): EvalRunSpec[] {
   if (options.compareAgents && options.compareAgents.length > 0) {
-    return options.compareAgents.map((spec) => parseAgentSpec(spec, options.model, options.agentCommands));
+    return options.compareAgents.map((spec) =>
+      parseAgentSpec(spec, options.model, options.agentCommands)
+    );
   }
 
-  const modelsToRun = options.compareModels && options.compareModels.length > 0 ? options.compareModels : [options.model];
+  const modelsToRun =
+    options.compareModels && options.compareModels.length > 0
+      ? options.compareModels
+      : [options.model];
   return modelsToRun.map((modelName) => ({
     agent: 'merge-shark',
     model: modelName,
-    label: `merge-shark:${modelName}`
+    label: `merge-shark:${modelName}`,
   }));
 }
 
-function parseAgentSpec(spec: string, defaultModel: string, agentCommands: Map<string, string>): EvalRunSpec {
+function parseAgentSpec(
+  spec: string,
+  defaultModel: string,
+  agentCommands: Map<string, string>
+): EvalRunSpec {
   const separatorIndex = spec.indexOf(':');
   const agent = separatorIndex === -1 ? spec : spec.slice(0, separatorIndex);
-  const model = separatorIndex === -1 ? defaultModel : spec.slice(separatorIndex + 1);
+  const model =
+    separatorIndex === -1 ? defaultModel : spec.slice(separatorIndex + 1);
 
   if (agent === 'merge-shark') {
     return {
       agent,
       model,
-      label: `${agent}:${model}`
+      label: `${agent}:${model}`,
     };
   }
 
@@ -186,7 +221,7 @@ function parseAgentSpec(spec: string, defaultModel: string, agentCommands: Map<s
     agent,
     model,
     label: agent,
-    ...(agentCommands.has(agent) ? { command: agentCommands.get(agent)! } : {})
+    ...(agentCommands.has(agent) ? { command: agentCommands.get(agent)! } : {}),
   };
 }
 
@@ -198,7 +233,7 @@ function isDatasetAlias(value: string): value is DatasetAlias {
     'local-conflict-repos',
     'congra',
     'merges-hf',
-    'agenticflict'
+    'agenticflict',
   ].includes(value);
 }
 

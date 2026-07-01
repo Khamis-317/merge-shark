@@ -1,8 +1,7 @@
 import type { FileEditOptions } from './edit-file.js';
 
 export type ApprovalResult =
-  | { approved: true }
-  | { approved: false; feedback?: string | undefined };
+  { approved: true } | { approved: false; feedback?: string | undefined };
 
 export interface BashCommandRequest {
   command: string;

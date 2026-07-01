@@ -3,7 +3,7 @@ import type { ToolCategory } from './metrics/tool-taxonomy.js';
 export interface ToolCallLog {
   toolName: string;
   category?: ToolCategory;
-  args: Record<string, any>;
+  args: Record<string, unknown>;
   result?: string;
   error?: string;
   durationMs?: number;
@@ -16,8 +16,13 @@ export interface TokenUsage {
 }
 
 export type EvalMode = 'snippet' | 'full-repo';
-export type DatasetName = 'structured-snippets' | 'prompted-snippets' | 'pull-request-conflicts' | 'local-conflict-repos';
-export type DatasetAlias = DatasetName | 'congra' | 'merges-hf' | 'agenticflict';
+export type DatasetName =
+  | 'structured-snippets'
+  | 'prompted-snippets'
+  | 'pull-request-conflicts'
+  | 'local-conflict-repos';
+export type DatasetAlias =
+  DatasetName | 'congra' | 'merges-hf' | 'agenticflict';
 
 export interface EvalCase {
   id: string;
@@ -28,12 +33,12 @@ export interface EvalCase {
   conflictContext?: string;
   groundTruth: string;
   repoPath?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface MetricResult {
   score: number;
-  details?: any;
+  details?: unknown;
 }
 
 export interface SyntaxResult {
@@ -102,7 +107,7 @@ export interface EvalResult {
     conflictText: string;
     conflictContext?: string;
     groundTruth?: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   };
   harness: HarnessResult;
   metrics: {
@@ -119,7 +124,7 @@ export interface EvalReport {
   timestamp: string;
   model: string;
   mode: EvalMode;
-    summary: {
+  summary: {
     totalCases: number;
     averageScore: number;
     syntaxPassRate?: number;

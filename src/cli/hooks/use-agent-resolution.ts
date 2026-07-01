@@ -50,10 +50,7 @@ export type SubAgentPane = {
   status: 'running' | 'complete' | 'failed';
 };
 export type AgentStatus =
-  | 'resolving'
-  | 'complete'
-  | 'reviewing'
-  | 'awaiting-approval';
+  'resolving' | 'complete' | 'reviewing' | 'awaiting-approval';
 
 export interface UseAgentResolutionOptions {
   repoPath: string;

@@ -60,7 +60,12 @@ function metricBar(label: string, value: number | undefined): string {
   `;
 }
 
-function donutChart(label: string, value: number | undefined, detail: string, className = 'good'): string {
+function donutChart(
+  label: string,
+  value: number | undefined,
+  detail: string,
+  className = 'good'
+): string {
   const safeValue = clamp01(value);
   const degrees = Math.round(safeValue * 360);
   return `
@@ -79,7 +84,10 @@ function donutChart(label: string, value: number | undefined, detail: string, cl
 function scoreDistribution(results: EvalResult[]): number[] {
   const buckets = new Array<number>(10).fill(0);
   for (const result of results) {
-    const index = Math.min(9, Math.max(0, Math.floor(clamp01(result.overallScore) * 10)));
+    const index = Math.min(
+      9,
+      Math.max(0, Math.floor(clamp01(result.overallScore) * 10))
+    );
     buckets[index] = (buckets[index] ?? 0) + 1;
   }
   return buckets;
@@ -91,18 +99,20 @@ function histogram(results: EvalResult[]): string {
 
   return `
     <div class="histogram" aria-label="Score distribution">
-      ${buckets.map((count, index) => {
-    const min = index * 10;
-    const max = index === 9 ? 100 : min + 9;
-    const height = Math.max(6, (count / maxBucket) * 100);
-    return `
+      ${buckets
+        .map((count, index) => {
+          const min = index * 10;
+          const max = index === 9 ? 100 : min + 9;
+          const height = Math.max(6, (count / maxBucket) * 100);
+          return `
           <div class="histogram-bin">
             <div class="histogram-count">${count}</div>
             <div class="histogram-bar ${scoreClass((index + 1) / 10)}" style="height: ${height}%"></div>
             <div class="histogram-label">${min}-${max}</div>
           </div>
         `;
-  }).join('')}
+        })
+        .join('')}
     </div>
   `;
 }
@@ -139,19 +149,24 @@ function judgeBadge(result: EvalResult): string {
 }
 
 function buildResultsRows(results: EvalResult[]): string {
-  const hasSemantic = results.some((result) => result.metrics.semantic !== undefined);
+  const hasSemantic = results.some(
+    (result) => result.metrics.semantic !== undefined
+  );
 
-  return results.map((result, index) => {
-    const similarity = result.metrics.similarity;
-    const syntaxPassed = result.metrics.syntax?.markersClean === true;
-    const durationSeconds = result.harness.durationMs / 1000;
-    const semanticCells = hasSemantic ? `
+  return results
+    .map((result, index) => {
+      const similarity = result.metrics.similarity;
+      const syntaxPassed = result.metrics.syntax?.markersClean === true;
+      const durationSeconds = result.harness.durationMs / 1000;
+      const semanticCells = hasSemantic
+        ? `
         <td>${judgeBadge(result)}</td>
         <td>${formatPercent(result.metrics.semantic?.score)}</td>
         <td class="reasoning">${escapeHtml(result.metrics.semantic?.reasoning ?? '')}</td>
-    ` : '';
+    `
+        : '';
 
-    return `
+      return `
       <tr class="result-row" data-result-index="${index}">
         <td class="muted">${index + 1}</td>
         <td><button class="case-link" type="button" data-result-index="${index}"><code>${escapeHtml(result.caseId)}</code></button></td>
@@ -168,23 +183,50 @@ function buildResultsRows(results: EvalResult[]): string {
         <td>${result.harness.tokenUsage.totalTokens.toLocaleString()}</td>
       </tr>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
-function buildHtmlReport(report: EvalReport, config: { dataset: string }): string {
+function buildHtmlReport(
+  report: EvalReport,
+  config: { dataset: string }
+): string {
   const generatedAt = new Date(report.timestamp).toLocaleString();
-  const sortedResults = [...report.results].sort((a, b) => a.overallScore - b.overallScore);
+  const sortedResults = [...report.results].sort(
+    (a, b) => a.overallScore - b.overallScore
+  );
   const weakestResults = sortedResults.slice(0, 5);
-  const totalTokens = report.results.reduce((sum, result) => sum + result.harness.tokenUsage.totalTokens, 0);
-  const averageDurationMs = report.results.reduce((sum, result) => sum + result.harness.durationMs, 0) / report.results.length;
+  const totalTokens = report.results.reduce(
+    (sum, result) => sum + result.harness.tokenUsage.totalTokens,
+    0
+  );
+  const averageDurationMs =
+    report.results.reduce((sum, result) => sum + result.harness.durationMs, 0) /
+    report.results.length;
   const averageTokens = totalTokens / report.results.length;
-  const averageToolEfficiency = report.results.reduce((sum, result) => sum + result.metrics.efficiency.toolEfficiency, 0) / report.results.length;
-  const passCount = report.results.filter((result) => result.metrics.syntax?.markersClean === true).length;
-  const exactCount = report.results.filter((result) => result.metrics.similarity.exactMatch).length;
-  const highScoreCount = report.results.filter((result) => result.overallScore >= 0.85).length;
-  const midScoreCount = report.results.filter((result) => result.overallScore >= 0.6 && result.overallScore < 0.85).length;
-  const lowScoreCount = report.results.filter((result) => result.overallScore < 0.6).length;
-  const hasSemantic = report.results.some((result) => result.metrics.semantic !== undefined);
+  const averageToolEfficiency =
+    report.results.reduce(
+      (sum, result) => sum + result.metrics.efficiency.toolEfficiency,
+      0
+    ) / report.results.length;
+  const passCount = report.results.filter(
+    (result) => result.metrics.syntax?.markersClean === true
+  ).length;
+  const exactCount = report.results.filter(
+    (result) => result.metrics.similarity.exactMatch
+  ).length;
+  const highScoreCount = report.results.filter(
+    (result) => result.overallScore >= 0.85
+  ).length;
+  const midScoreCount = report.results.filter(
+    (result) => result.overallScore >= 0.6 && result.overallScore < 0.85
+  ).length;
+  const lowScoreCount = report.results.filter(
+    (result) => result.overallScore < 0.6
+  ).length;
+  const hasSemantic = report.results.some(
+    (result) => result.metrics.semantic !== undefined
+  );
   const detailResults = report.results.map((result) => ({
     caseId: result.caseId,
     dataset: result.dataset,
@@ -197,33 +239,41 @@ function buildHtmlReport(report: EvalReport, config: { dataset: string }): strin
     toolCalls: result.harness.toolCalls,
     durationMs: result.harness.durationMs,
     tokenUsage: result.harness.tokenUsage,
-    metrics: result.metrics
+    metrics: result.metrics,
   }));
-  const semanticHeaderCells = hasSemantic ? `
+  const semanticHeaderCells = hasSemantic
+    ? `
               <th>Judge</th>
               <th>Judge Score</th>
               <th>Reasoning</th>
-  ` : '';
-  const semanticSummaryCard = hasSemantic ? `
+  `
+    : '';
+  const semanticSummaryCard = hasSemantic
+    ? `
       <div class="card">
         <div class="stat-label">Judge Score</div>
         <div class="stat-value">${formatPercent(report.summary.averageJudgeScore)}</div>
       </div>
-  ` : '';
+  `
+    : '';
   const summaryGridClass = hasSemantic ? 'grid five' : 'grid';
-  const semanticBars = hasSemantic ? `
+  const semanticBars = hasSemantic
+    ? `
         ${metricBar('Judge score', report.summary.averageJudgeScore)}
         ${metricBar('Generated preferred', report.summary.judgeGeneratedWinRate)}
         ${metricBar('Reference preferred', report.summary.judgeReferenceWinRate)}
         ${metricBar('Judge tie', report.summary.judgeTieRate)}
         ${metricBar('Judge inconclusive', report.summary.judgeInconclusiveRate)}
-  ` : '';
-  const judgeDonut = hasSemantic ? donutChart(
-    'Judge Preference',
-    report.summary.judgeGeneratedWinRate,
-    `${formatPercent(report.summary.judgeReferenceWinRate)} reference, ${formatPercent(report.summary.judgeTieRate)} tie`,
-    'blue'
-  ) : '';
+  `
+    : '';
+  const judgeDonut = hasSemantic
+    ? donutChart(
+        'Judge Preference',
+        report.summary.judgeGeneratedWinRate,
+        `${formatPercent(report.summary.judgeReferenceWinRate)} reference, ${formatPercent(report.summary.judgeTieRate)} tie`,
+        'blue'
+      )
+    : '';
 
   return `<!doctype html>
 <html lang="en">
@@ -807,12 +857,16 @@ function buildHtmlReport(report: EvalReport, config: { dataset: string }): strin
       <div class="card">
         <h2>Weakest Cases</h2>
         <div class="weak-list">
-          ${weakestResults.map((result) => `
+          ${weakestResults
+            .map(
+              (result) => `
             <div class="weak-item">
               <code>${escapeHtml(result.caseId)}</code>
               <span class="score-pill ${scoreClass(result.overallScore)}">${formatPercent(result.overallScore)}</span>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     </section>
@@ -954,28 +1008,57 @@ function buildHtmlReport(report: EvalReport, config: { dataset: string }): strin
 `;
 }
 
-export async function generateReport(results: EvalResult[], config: { dataset: string, mode: EvalMode, model: string, outDir?: string }): Promise<void> {
+export async function generateReport(
+  results: EvalResult[],
+  config: { dataset: string; mode: EvalMode; model: string; outDir?: string }
+): Promise<void> {
   const totalCases = results.length;
   if (totalCases === 0) {
     console.log('No results to report.');
     return;
   }
 
-  const avgScore = results.reduce((acc, r) => acc + r.overallScore, 0) / totalCases;
-  const avgEditDist = results.reduce((acc, r) => acc + r.metrics.similarity.editDistance, 0) / totalCases;
-  const avgWinnowing = results.reduce((acc, r) => acc + r.metrics.similarity.winnowing, 0) / totalCases;
-  const exactMatchRate = results.filter(r => r.metrics.similarity.exactMatch).length / totalCases;
-  const syntaxPassRate = results.filter(r => r.metrics.syntax?.markersClean).length / totalCases;
-  const averageToolEfficiency = results.reduce((acc, result) => acc + result.metrics.efficiency.toolEfficiency, 0) / totalCases;
-  const semanticResults = results.map((result) => result.metrics.semantic).filter((result) => result !== undefined);
+  const avgScore =
+    results.reduce((acc, r) => acc + r.overallScore, 0) / totalCases;
+  const avgEditDist =
+    results.reduce((acc, r) => acc + r.metrics.similarity.editDistance, 0) /
+    totalCases;
+  const avgWinnowing =
+    results.reduce((acc, r) => acc + r.metrics.similarity.winnowing, 0) /
+    totalCases;
+  const exactMatchRate =
+    results.filter((r) => r.metrics.similarity.exactMatch).length / totalCases;
+  const syntaxPassRate =
+    results.filter((r) => r.metrics.syntax?.markersClean).length / totalCases;
+  const averageToolEfficiency =
+    results.reduce(
+      (acc, result) => acc + result.metrics.efficiency.toolEfficiency,
+      0
+    ) / totalCases;
+  const semanticResults = results
+    .map((result) => result.metrics.semantic)
+    .filter((result) => result !== undefined);
   const semanticTotal = semanticResults.length;
-  const semanticSummary = semanticTotal > 0 ? {
-    judgeGeneratedWinRate: semanticResults.filter((result) => result.winner === 'generated').length / semanticTotal,
-    judgeReferenceWinRate: semanticResults.filter((result) => result.winner === 'reference').length / semanticTotal,
-    judgeTieRate: semanticResults.filter((result) => result.winner === 'tie').length / semanticTotal,
-    judgeInconclusiveRate: semanticResults.filter((result) => result.winner === 'inconclusive').length / semanticTotal,
-    averageJudgeScore: semanticResults.reduce((acc, result) => acc + result.score, 0) / semanticTotal
-  } : {};
+  const semanticSummary =
+    semanticTotal > 0
+      ? {
+          judgeGeneratedWinRate:
+            semanticResults.filter((result) => result.winner === 'generated')
+              .length / semanticTotal,
+          judgeReferenceWinRate:
+            semanticResults.filter((result) => result.winner === 'reference')
+              .length / semanticTotal,
+          judgeTieRate:
+            semanticResults.filter((result) => result.winner === 'tie').length /
+            semanticTotal,
+          judgeInconclusiveRate:
+            semanticResults.filter((result) => result.winner === 'inconclusive')
+              .length / semanticTotal,
+          averageJudgeScore:
+            semanticResults.reduce((acc, result) => acc + result.score, 0) /
+            semanticTotal,
+        }
+      : {};
 
   const report: EvalReport = {
     timestamp: new Date().toISOString(),
@@ -989,12 +1072,15 @@ export async function generateReport(results: EvalResult[], config: { dataset: s
       exactMatchRate,
       syntaxPassRate,
       averageToolEfficiency,
-      ...semanticSummary
+      ...semanticSummary,
     },
-    results
+    results,
   };
 
-  const reportsDir = path.resolve(process.cwd(), config.outDir || 'eval-results');
+  const reportsDir = path.resolve(
+    process.cwd(),
+    config.outDir || 'eval-results'
+  );
   await fs.mkdir(reportsDir, { recursive: true });
 
   const baseName = `eval-${config.dataset}-${Date.now()}`;
@@ -1002,7 +1088,10 @@ export async function generateReport(results: EvalResult[], config: { dataset: s
   const htmlPath = path.join(reportsDir, `${baseName}.html`);
 
   await fs.writeFile(jsonPath, JSON.stringify(report, null, 2));
-  await fs.writeFile(htmlPath, buildHtmlReport(report, { dataset: config.dataset }));
+  await fs.writeFile(
+    htmlPath,
+    buildHtmlReport(report, { dataset: config.dataset })
+  );
   console.log(`JSON report saved to ${jsonPath}`);
   console.log(`HTML report saved to ${htmlPath}`);
 }
@@ -1022,16 +1111,24 @@ interface ModelComparisonSummary {
   averageToolEfficiency: number;
 }
 
-export async function generateComparisonReport(runs: ModelComparisonInput[], config: { dataset: string, mode: EvalMode, outDir?: string }): Promise<void> {
-  const summaries = runs.map((run) => summarizeModelRun(run)).sort((a, b) => b.averageScore - a.averageScore);
-  const reportsDir = path.resolve(process.cwd(), config.outDir || 'eval-results');
+export async function generateComparisonReport(
+  runs: ModelComparisonInput[],
+  config: { dataset: string; mode: EvalMode; outDir?: string }
+): Promise<void> {
+  const summaries = runs
+    .map((run) => summarizeModelRun(run))
+    .sort((a, b) => b.averageScore - a.averageScore);
+  const reportsDir = path.resolve(
+    process.cwd(),
+    config.outDir || 'eval-results'
+  );
   await fs.mkdir(reportsDir, { recursive: true });
 
   const report = {
     timestamp: new Date().toISOString(),
     dataset: config.dataset,
     mode: config.mode,
-    summaries
+    summaries,
   };
 
   const baseName = `eval-comparison-${config.dataset}-${Date.now()}`;
@@ -1054,23 +1151,45 @@ function summarizeModelRun(run: ModelComparisonInput): ModelComparisonSummary {
       markerCleanRate: 0,
       averageDurationMs: 0,
       averageToolCalls: 0,
-      averageToolEfficiency: 0
+      averageToolEfficiency: 0,
     };
   }
 
   return {
     model: run.model,
     totalCases,
-    averageScore: run.results.reduce((sum, result) => sum + result.overallScore, 0) / totalCases,
-    markerCleanRate: run.results.filter((result) => result.metrics.syntax?.markersClean === true).length / totalCases,
-    averageDurationMs: run.results.reduce((sum, result) => sum + result.harness.durationMs, 0) / totalCases,
-    averageToolCalls: run.results.reduce((sum, result) => sum + result.harness.toolCalls.length, 0) / totalCases,
-    averageToolEfficiency: run.results.reduce((sum, result) => sum + result.metrics.efficiency.toolEfficiency, 0) / totalCases
+    averageScore:
+      run.results.reduce((sum, result) => sum + result.overallScore, 0) /
+      totalCases,
+    markerCleanRate:
+      run.results.filter(
+        (result) => result.metrics.syntax?.markersClean === true
+      ).length / totalCases,
+    averageDurationMs:
+      run.results.reduce((sum, result) => sum + result.harness.durationMs, 0) /
+      totalCases,
+    averageToolCalls:
+      run.results.reduce(
+        (sum, result) => sum + result.harness.toolCalls.length,
+        0
+      ) / totalCases,
+    averageToolEfficiency:
+      run.results.reduce(
+        (sum, result) => sum + result.metrics.efficiency.toolEfficiency,
+        0
+      ) / totalCases,
   };
 }
 
-function buildComparisonHtml(report: { timestamp: string; dataset: string; mode: EvalMode; summaries: ModelComparisonSummary[] }): string {
-  const rows = report.summaries.map((summary, index) => `
+function buildComparisonHtml(report: {
+  timestamp: string;
+  dataset: string;
+  mode: EvalMode;
+  summaries: ModelComparisonSummary[];
+}): string {
+  const rows = report.summaries
+    .map(
+      (summary, index) => `
     <tr>
       <td>${index + 1}</td>
       <td>${escapeHtml(summary.model)}</td>
@@ -1081,7 +1200,9 @@ function buildComparisonHtml(report: { timestamp: string; dataset: string; mode:
       <td>${formatNumber(summary.averageToolCalls, 1)}</td>
       <td>${formatPercent(summary.averageToolEfficiency)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `<!doctype html>
 <html lang="en">

@@ -9,7 +9,10 @@ export function checkConflictMarkers(text: string): boolean {
   return !markerRegex.test(text);
 }
 
-export async function checkCompilation(repoPath: string, cmd: string): Promise<boolean> {
+export async function checkCompilation(
+  repoPath: string,
+  cmd: string
+): Promise<boolean> {
   try {
     await execAsync(cmd, { cwd: repoPath });
     return true;
@@ -18,7 +21,10 @@ export async function checkCompilation(repoPath: string, cmd: string): Promise<b
   }
 }
 
-export async function checkLint(repoPath: string, cmd: string): Promise<boolean> {
+export async function checkLint(
+  repoPath: string,
+  cmd: string
+): Promise<boolean> {
   try {
     await execAsync(cmd, { cwd: repoPath });
     return true;
@@ -27,7 +33,12 @@ export async function checkLint(repoPath: string, cmd: string): Promise<boolean>
   }
 }
 
-export async function evaluateSyntax(resolution: string, repoPath?: string, buildCmd?: string, lintCmd?: string): Promise<SyntaxResult> {
+export async function evaluateSyntax(
+  resolution: string,
+  repoPath?: string,
+  buildCmd?: string,
+  lintCmd?: string
+): Promise<SyntaxResult> {
   const markersClean = checkConflictMarkers(resolution);
   let compiles: boolean | undefined = undefined;
   let lints: boolean | undefined = undefined;
@@ -52,6 +63,6 @@ export async function evaluateSyntax(resolution: string, repoPath?: string, buil
     markersClean,
     ...(compiles !== undefined ? { compiles } : {}),
     ...(lints !== undefined ? { lints } : {}),
-    errors
+    errors,
   };
 }

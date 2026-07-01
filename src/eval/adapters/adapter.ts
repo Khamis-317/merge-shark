@@ -26,5 +26,14 @@ export function normalizeWhitespace(text: string): string {
 
 export function stripInvisibleChars(text: string): string {
   // ConGra pattern: r'[\s\x00-\x1f\x7f-\x9f]+'
-  return text.replace(/[\s\x00-\x1F\x7F-\x9F]+/g, '');
+  return Array.from(text)
+    .filter((char) => {
+      const codePoint = char.codePointAt(0);
+      return (
+        codePoint !== undefined &&
+        !/\s/.test(char) &&
+        !(codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f))
+      );
+    })
+    .join('');
 }

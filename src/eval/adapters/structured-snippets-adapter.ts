@@ -1,14 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { EvalCase } from '../types.js';
-import { DEFAULT_EVAL_DATASETS_DIR, type DatasetAdapter, type AdapterOptions } from './adapter.js';
+import {
+  DEFAULT_EVAL_DATASETS_DIR,
+  type DatasetAdapter,
+  type AdapterOptions,
+} from './adapter.js';
 
 export class StructuredSnippetsAdapter implements DatasetAdapter {
   name = 'structured-snippets';
   supports = {
     fullRepo: false,
     buildCheck: false,
-    ragTracking: false
+    ragTracking: false,
   };
 
   async *load(options: AdapterOptions): AsyncIterable<EvalCase> {
@@ -17,23 +21,27 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
 
     const datasetsDir = path.join(congraPath, 'congra_full_datasets');
     let count = 0;
-    
-    const languages = options.language ? [options.language] : ['c', 'cpp', 'java', 'python'];
+
+    const languages = options.language
+      ? [options.language]
+      : ['c', 'cpp', 'java', 'python'];
     for (const lang of languages) {
       const langDir = path.join(datasetsDir, lang);
-      let types: string[] = [];
+      let types: string[];
       try {
         const entries = await fs.readdir(langDir, { withFileTypes: true });
-        types = entries.filter(e => e.isDirectory()).map(e => e.name);
+        types = entries.filter((e) => e.isDirectory()).map((e) => e.name);
       } catch (error: unknown) {
         if (options.language || !isNotFoundError(error)) {
-          console.warn(`Could not read structured snippet language directory ${langDir}: ${formatError(error)}`);
+          console.warn(
+            `Could not read structured snippet language directory ${langDir}: ${formatError(error)}`
+          );
         }
         continue;
       }
 
       if (options.conflictType) {
-        types = types.filter(t => t === options.conflictType);
+        types = types.filter((t) => t === options.conflictType);
       }
 
       for (const type of types) {
@@ -42,17 +50,19 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
         try {
           metaContent = await fs.readFile(metaPath, 'utf8');
         } catch (error: unknown) {
-          console.warn(`Could not read structured snippet metadata ${metaPath}: ${formatError(error)}`);
+          console.warn(
+            `Could not read structured snippet metadata ${metaPath}: ${formatError(error)}`
+          );
           continue;
         }
 
-        const lines = metaContent.split('\n').filter(l => l.trim() !== '');
+        const lines = metaContent.split('\n').filter((l) => l.trim() !== '');
         for (const line of lines) {
           if (limit && count >= limit) return;
 
-          const parts = line.split(':').map(p => p.trim());
+          const parts = line.split(':').map((p) => p.trim());
           if (parts.length < 3) continue;
-          
+
           const rawRelativePath = parts[0];
           const hashedName = parts[1];
           const conflictNumStr = parts[2];
@@ -60,13 +70,23 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
 
           const conflictNum = parseInt(conflictNumStr, 10);
           if (Number.isNaN(conflictNum)) continue;
-          
-          const rawDirPath = conflictDirFromMetaPath(congraPath, rawRelativePath);
+
+          const rawDirPath = conflictDirFromMetaPath(
+            congraPath,
+            rawRelativePath
+          );
           const rawFilePath = filePathFromMetaPath(rawRelativePath);
           if (!rawFilePath) continue;
-          
+
           try {
-            const caseData = await this.loadConflictCase(rawDirPath, rawFilePath, hashedName, conflictNum, lang, type);
+            const caseData = await this.loadConflictCase(
+              rawDirPath,
+              rawFilePath,
+              hashedName,
+              conflictNum,
+              lang,
+              type
+            );
             if (caseData) {
               yield caseData;
               count++;
@@ -79,7 +99,14 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
     }
   }
 
-  private async loadConflictCase(rawDirPath: string, file: string, hashedName: string, conflictNum: number, language: string, type: string): Promise<EvalCase | null> {
+  private async loadConflictCase(
+    rawDirPath: string,
+    file: string,
+    hashedName: string,
+    conflictNum: number,
+    language: string,
+    type: string
+  ): Promise<EvalCase | null> {
     const mergedDir = path.join(rawDirPath, 'merged_without_base');
     const regionDir = path.join(rawDirPath, 'regions');
     const resolvedDir = path.join(rawDirPath, 'resolved');
@@ -92,14 +119,22 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
     const regionContent = await fs.readFile(regionFilePath, 'utf8');
     const resolvedContent = await fs.readFile(resolvedFilePath, 'utf8');
 
-    const regionLines = regionContent.split('\n').filter(l => l.trim() !== '' && !l.startsWith('#'));
+    const regionLines = regionContent
+      .split('\n')
+      .filter((l) => l.trim() !== '' && !l.startsWith('#'));
     if (conflictNum > regionLines.length) return null;
-    
+
     const regionLine = regionLines[conflictNum - 1];
     if (!regionLine) return null;
 
     const [sc, ec, sr, er] = parseRegionLine(regionLine);
-    if (sc === undefined || ec === undefined || sr === undefined || er === undefined) return null;
+    if (
+      sc === undefined ||
+      ec === undefined ||
+      sr === undefined ||
+      er === undefined
+    )
+      return null;
     if ([sc, ec, sr, er].some(Number.isNaN)) return null;
 
     const mergedLines = mergedContent.split('\n');
@@ -107,15 +142,22 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
 
     const startIdx = sc - 1;
     const endIdx = ec;
-    
+
     const conflictText = mergedLines.slice(startIdx, endIdx).join('\n');
-    
+
     const contextN = 10;
-    const conflictContext = mergedLines.slice(Math.max(0, startIdx - contextN), Math.min(mergedLines.length, endIdx + contextN)).join('\n');
+    const conflictContext = mergedLines
+      .slice(
+        Math.max(0, startIdx - contextN),
+        Math.min(mergedLines.length, endIdx + contextN)
+      )
+      .join('\n');
 
     const resStartIdx = sr - 1;
     const resEndIdx = er;
-    const groundTruth = resolvedLines.slice(Math.max(0, resStartIdx), resEndIdx).join('\n');
+    const groundTruth = resolvedLines
+      .slice(Math.max(0, resStartIdx), resEndIdx)
+      .join('\n');
 
     return {
       id: `congra-${hashedName}-${conflictNum}`,
@@ -127,15 +169,18 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
       groundTruth,
       metadata: {
         rawDirPath,
-        file
-      }
+        file,
+      },
     };
   }
 }
 
 export const CongraAdapter = StructuredSnippetsAdapter;
 
-function conflictDirFromMetaPath(congraPath: string, rawRelativePath: string): string {
+function conflictDirFromMetaPath(
+  congraPath: string,
+  rawRelativePath: string
+): string {
   const mergedMarker = `${path.sep}merged_without_base${path.sep}`;
   const rawPath = path.join(congraPath, 'raw_datasets', rawRelativePath);
   const markerIndex = rawPath.indexOf(mergedMarker);
@@ -148,7 +193,9 @@ function filePathFromMetaPath(rawRelativePath: string): string | null {
 }
 
 function parseRegionLine(regionLine: string): number[] {
-  return Array.from(regionLine.matchAll(/\d+/g), (match) => Number.parseInt(match[0], 10));
+  return Array.from(regionLine.matchAll(/\d+/g), (match) =>
+    Number.parseInt(match[0], 10)
+  );
 }
 
 async function pathExists(candidatePath: string): Promise<boolean> {
@@ -157,34 +204,44 @@ async function pathExists(candidatePath: string): Promise<boolean> {
     return true;
   } catch (error: unknown) {
     if (!isNotFoundError(error)) {
-      console.warn(`Could not inspect structured snippet path ${candidatePath}: ${formatError(error)}`);
+      console.warn(
+        `Could not inspect structured snippet path ${candidatePath}: ${formatError(error)}`
+      );
     }
     return false;
   }
 }
 
-async function findCongraDataPath(datasetPath: string | undefined): Promise<string> {
+async function findCongraDataPath(
+  datasetPath: string | undefined
+): Promise<string> {
   const basePath = path.resolve(datasetPath ?? DEFAULT_EVAL_DATASETS_DIR);
   const candidates = [
     basePath,
     path.join(basePath, 'Congra_datasets'),
-    path.join(basePath, 'ConGra/data')
+    path.join(basePath, 'ConGra/data'),
   ];
 
   for (const candidate of candidates) {
     if (
-      await pathExists(path.join(candidate, 'congra_full_datasets')) &&
-      await pathExists(path.join(candidate, 'raw_datasets'))
+      (await pathExists(path.join(candidate, 'congra_full_datasets'))) &&
+      (await pathExists(path.join(candidate, 'raw_datasets')))
     ) {
       return candidate;
     }
   }
 
-  throw new Error(`Structured snippet data not found. Expected congra_full_datasets and raw_datasets under one of: ${candidates.join(', ')}`);
+  throw new Error(
+    `Structured snippet data not found. Expected congra_full_datasets and raw_datasets under one of: ${candidates.join(', ')}`
+  );
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'ENOENT'
+  );
 }
 
 function formatError(error: unknown): string {

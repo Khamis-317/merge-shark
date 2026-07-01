@@ -1,7 +1,11 @@
 import { PromptTemplate } from '@langchain/core/prompts';
 import { dedent } from '../../utils/dedent.js';
 import type { EvalCase, SemanticResult } from '../types.js';
-import { createJudgeModel, extractTextContent, parseJsonObject } from './utils.js';
+import {
+  createJudgeModel,
+  extractTextContent,
+  parseJsonObject,
+} from './utils.js';
 
 interface JudgeResponse {
   winner?: unknown;
@@ -20,7 +24,10 @@ function clampScore(value: unknown): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function normalizeWinner(value: unknown, hasReference: boolean): SemanticResult['winner'] {
+function normalizeWinner(
+  value: unknown,
+  hasReference: boolean
+): SemanticResult['winner'] {
   if (value === 'generated') {
     return value;
   }
@@ -42,7 +49,11 @@ function normalizeCriteria(value: unknown): Record<string, number> | undefined {
   return criteria;
 }
 
-export async function evaluateSemanticQuality(evalCase: EvalCase, generatedResolution: string, judgeModelName: string): Promise<SemanticResult> {
+export async function evaluateSemanticQuality(
+  evalCase: EvalCase,
+  generatedResolution: string,
+  judgeModelName: string
+): Promise<SemanticResult> {
   const model = createJudgeModel(judgeModelName);
   const hasReference = evalCase.groundTruth.trim().length > 0;
   const prompt = PromptTemplate.fromTemplate(dedent`
@@ -108,14 +119,19 @@ export async function evaluateSemanticQuality(evalCase: EvalCase, generatedResol
     {referenceResolution}
     `);
 
-  const response = await model.invoke(await prompt.format({
-    language: evalCase.language,
-    conflictContext: evalCase.conflictContext || 'No additional context provided.',
-    conflictText: evalCase.conflictText,
-    generatedResolution,
-    referenceAvailable: hasReference ? 'true' : 'false',
-    referenceResolution: hasReference ? evalCase.groundTruth : 'No reference resolution is available.'
-  }));
+  const response = await model.invoke(
+    await prompt.format({
+      language: evalCase.language,
+      conflictContext:
+        evalCase.conflictContext || 'No additional context provided.',
+      conflictText: evalCase.conflictText,
+      generatedResolution,
+      referenceAvailable: hasReference ? 'true' : 'false',
+      referenceResolution: hasReference
+        ? evalCase.groundTruth
+        : 'No reference resolution is available.',
+    })
+  );
 
   const text = extractTextContent(response.content);
   const parsed = parseJsonObject(text) as JudgeResponse | null;
@@ -128,7 +144,7 @@ export async function evaluateSemanticQuality(evalCase: EvalCase, generatedResol
       completeness: 0,
       risk: 1,
       reasoning: `Judge returned non-JSON output: ${text.slice(0, 200)}`,
-      judgeModel: judgeModelName
+      judgeModel: judgeModelName,
     };
   }
 
@@ -138,8 +154,11 @@ export async function evaluateSemanticQuality(evalCase: EvalCase, generatedResol
     correctness: clampScore(parsed.correctness),
     completeness: clampScore(parsed.completeness),
     risk: clampScore(parsed.risk),
-    reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : 'No reasoning provided.',
-    judgeModel: judgeModelName
+    reasoning:
+      typeof parsed.reasoning === 'string'
+        ? parsed.reasoning
+        : 'No reasoning provided.',
+    judgeModel: judgeModelName,
   };
   const criteria = normalizeCriteria(parsed.criteria);
   if (criteria !== undefined) {
