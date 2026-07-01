@@ -50,7 +50,9 @@ export abstract class BaseAgent {
   constructor(
     protected repoPath: string,
     protected llm: LanguageModelLike,
-    protected callbacks: BaseAgentCallbacks
+    protected callbacks: BaseAgentCallbacks,
+    protected jdtlsPath?: string,
+    protected jdltlsDataPath?: string
   ) {}
 
   /**
