@@ -58,7 +58,10 @@ async function isGitRepo(repoPath: string): Promise<boolean> {
   try {
     await fs.stat(path.join(repoPath, '.git'));
     return true;
-  } catch {
+  } catch (error: unknown) {
+    if (!isNotFoundError(error)) {
+      console.warn(`Could not inspect git metadata for ${repoPath}: ${formatError(error)}`);
+    }
     return false;
   }
 }
@@ -71,8 +74,8 @@ async function listConflictingFiles(repoPath: string): Promise<string[]> {
     for (const file of stdout.split('\n').map((line) => line.trim()).filter(Boolean)) {
       files.add(file);
     }
-  } catch {
-    // Fall through to marker scanning.
+  } catch (error: unknown) {
+    console.warn(`Could not list unmerged files in ${repoPath}; falling back to marker scanning: ${formatError(error)}`);
   }
 
   try {
@@ -80,8 +83,10 @@ async function listConflictingFiles(repoPath: string): Promise<string[]> {
     for (const file of stdout.split('\n').map((line) => line.trim()).filter(Boolean)) {
       files.add(file);
     }
-  } catch {
-    // git grep exits with code 1 when no matches are found.
+  } catch (error: unknown) {
+    if (!isExitCode(error, 1)) {
+      console.warn(`Could not scan tracked files for conflict markers in ${repoPath}: ${formatError(error)}`);
+    }
   }
 
   try {
@@ -91,8 +96,8 @@ async function listConflictingFiles(repoPath: string): Promise<string[]> {
         files.add(file);
       }
     }
-  } catch {
-    // Ignore untracked-file scan failures.
+  } catch (error: unknown) {
+    console.warn(`Could not scan untracked files for conflict markers in ${repoPath}: ${formatError(error)}`);
   }
 
   return [...files];
@@ -102,7 +107,25 @@ async function fileContainsConflictMarker(filePath: string): Promise<boolean> {
   try {
     const content = await fs.readFile(filePath, 'utf8');
     return content.includes('<<<<<<<');
-  } catch {
+  } catch (error: unknown) {
+    if (!isNotFoundError(error)) {
+      console.warn(`Could not read ${filePath} while scanning conflict markers: ${formatError(error)}`);
+    }
     return false;
   }
+}
+
+function isExitCode(error: unknown, code: number): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === code;
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }

@@ -33,7 +33,8 @@ export class PromptedSnippetsAdapter implements DatasetAdapter {
       try {
         const testEntries = await fs.readdir(testDir);
         arrowFiles = testEntries.filter(e => e.endsWith('.arrow'));
-      } catch {
+      } catch (error: unknown) {
+        console.warn(`Could not read prompted snippet test directory ${testDir}: ${formatError(error)}`);
         continue;
       }
 
@@ -87,7 +88,10 @@ async function findPromptedSnippetsPath(datasetPath: string | undefined): Promis
       if (entries.some((entry) => entry.isDirectory() && (entry.name.startsWith('repos_github_') || entry.name.startsWith('repos_reaper_')))) {
         return candidate;
       }
-    } catch {
+    } catch (error: unknown) {
+      if (!isNotFoundError(error)) {
+        console.warn(`Could not inspect prompted snippet data path ${candidate}: ${formatError(error)}`);
+      }
       continue;
     }
   }
@@ -119,4 +123,15 @@ function inferLanguage(langDir: string): string {
   };
 
   return languageByDatasetName[datasetName] ?? 'unknown';
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }

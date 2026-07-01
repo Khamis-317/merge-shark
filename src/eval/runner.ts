@@ -1,8 +1,8 @@
 import type { DatasetAdapter, AdapterOptions } from './adapters/adapter.js';
-import { StructuredSnippetsAdapter } from './adapters/congra.js';
-import { PromptedSnippetsAdapter } from './adapters/merges-hf.js';
-import { PullRequestConflictsAdapter } from './adapters/agenticflict.js';
-import { ConflictRepoDirectoryAdapter } from './adapters/local-conflict-repos.js';
+import { StructuredSnippetsAdapter } from './adapters/structured-snippets-adapter.js';
+import { PromptedSnippetsAdapter } from './adapters/prompted-snippets-adapter.js';
+import { PullRequestConflictsAdapter } from './adapters/pull-request-conflicts-adapter.js';
+import { ConflictRepoDirectoryAdapter } from './adapters/conflict-repo-directory-adapter.js';
 import { runFullRepoMode, runSnippetMode } from './harness.js';
 import { evaluateSyntax } from './metrics/syntax.js';
 import { evaluateSimilarity } from './metrics/similarity.js';

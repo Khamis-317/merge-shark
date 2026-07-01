@@ -25,7 +25,10 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
       try {
         const entries = await fs.readdir(langDir, { withFileTypes: true });
         types = entries.filter(e => e.isDirectory()).map(e => e.name);
-      } catch (e) {
+      } catch (error: unknown) {
+        if (options.language || !isNotFoundError(error)) {
+          console.warn(`Could not read structured snippet language directory ${langDir}: ${formatError(error)}`);
+        }
         continue;
       }
 
@@ -38,7 +41,8 @@ export class StructuredSnippetsAdapter implements DatasetAdapter {
         let metaContent: string;
         try {
           metaContent = await fs.readFile(metaPath, 'utf8');
-        } catch {
+        } catch (error: unknown) {
+          console.warn(`Could not read structured snippet metadata ${metaPath}: ${formatError(error)}`);
           continue;
         }
 
@@ -151,7 +155,10 @@ async function pathExists(candidatePath: string): Promise<boolean> {
   try {
     await fs.stat(candidatePath);
     return true;
-  } catch {
+  } catch (error: unknown) {
+    if (!isNotFoundError(error)) {
+      console.warn(`Could not inspect structured snippet path ${candidatePath}: ${formatError(error)}`);
+    }
     return false;
   }
 }
@@ -174,4 +181,15 @@ async function findCongraDataPath(datasetPath: string | undefined): Promise<stri
   }
 
   throw new Error(`Structured snippet data not found. Expected congra_full_datasets and raw_datasets under one of: ${candidates.join(', ')}`);
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }

@@ -105,8 +105,8 @@ export class PullRequestConflictsAdapter implements DatasetAdapter {
         try {
           const filePath = path.join(repoPath, fileRec.file_path);
           conflictText = await fs.readFile(filePath, 'utf8');
-        } catch {
-          // File might not exist if merge failed in a different way
+        } catch (error: unknown) {
+          console.warn(`Could not read conflicted file ${fileRec.file_path} for ${pr.pr_key}: ${formatError(error)}`);
         }
       }
 
@@ -156,7 +156,10 @@ export class PullRequestConflictsAdapter implements DatasetAdapter {
       try {
         await fs.stat(repoPath);
         await execFileAsync('git', ['fetch', 'origin'], { cwd: repoPath });
-      } catch {
+      } catch (error: unknown) {
+        if (!isNotFoundError(error)) {
+          console.warn(`Could not reuse cached repo ${repoPath}; cloning a fresh copy: ${formatError(error)}`);
+        }
         await execFileAsync('git', ['clone', gitUrl, repoPath]);
       }
       
@@ -203,7 +206,10 @@ async function findPullRequestConflictsPath(datasetPath: string | undefined): Pr
       await fs.stat(path.join(candidate, 'agenticflict_pr_clean.csv'));
       await fs.stat(path.join(candidate, 'agenticflict_conflict_files_clean.csv'));
       return candidate;
-    } catch {
+    } catch (error: unknown) {
+      if (!isNotFoundError(error)) {
+        console.warn(`Could not inspect pull-request conflict data path ${candidate}: ${formatError(error)}`);
+      }
       continue;
     }
   }
@@ -230,4 +236,15 @@ function isMergeConflictError(error: unknown): boolean {
     .join('\n');
 
   return /CONFLICT|Automatic merge failed|Merge conflict/i.test(text);
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }

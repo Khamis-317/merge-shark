@@ -8,8 +8,8 @@ async function main() {
   let entries;
   try {
     entries = await fs.readdir(mergesDir, { withFileTypes: true });
-  } catch {
-    console.error(`Could not read ${mergesDir}. Make sure dataset is downloaded.`);
+  } catch (error: unknown) {
+    console.error(`Could not read ${mergesDir}. Make sure dataset is downloaded: ${formatError(error)}`);
     return;
   }
   
@@ -38,10 +38,18 @@ async function main() {
         }
         await fd.close();
       }
-    } catch {
+    } catch (error: unknown) {
+      console.warn(`Skipping ${testDir}; could not convert Arrow files: ${formatError(error)}`);
       continue;
     }
   }
 }
 
 main().catch(console.error);
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
