@@ -3,6 +3,8 @@ import type { DatasetAlias, EvalMode } from './types.js';
 import { normalizeDatasetName, runEvaluation } from './runner.js';
 import { generateComparisonReport, generateReport } from './report.js';
 
+const DEFAULT_JUDGE_MODEL = 'gemini-3-flash';
+
 interface EvalRunSpec {
   agent: string;
   model: string;
@@ -22,7 +24,7 @@ async function main() {
   let language: string | undefined;
   let conflictType: string | undefined;
   let outDir: string | undefined;
-  let judgeModel: string | undefined;
+  let judgeModel = DEFAULT_JUDGE_MODEL;
   let reposDir: string | undefined;
   let datasetPathOverride: string | undefined;
   let cleanupWorktrees = false;
@@ -118,7 +120,7 @@ async function main() {
     agentCommands
   });
 
-  console.log(`Starting eval: dataset=${reportDataset}, mode=${mode}, agents=${runsToExecute.map((run) => run.label).join(',')}, limit=${limit}`);
+  console.log(`Starting eval: dataset=${reportDataset}, mode=${mode}, agents=${runsToExecute.map((run) => run.label).join(',')}, judge=${judgeModel}, limit=${limit}`);
 
   const comparisonResults = [];
 
@@ -133,7 +135,7 @@ async function main() {
       limit,
       ...(language !== undefined ? { language } : {}),
       ...(conflictType !== undefined ? { type: conflictType } : {}),
-      ...(judgeModel !== undefined ? { judgeModel } : {}),
+      judgeModel,
       cleanupWorktrees
     };
 
