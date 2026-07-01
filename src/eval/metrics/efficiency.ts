@@ -1,4 +1,5 @@
 import type { EfficiencyResult, TokenUsage, ToolCallLog } from '../types.js';
+import { classifyToolCall } from './tool-taxonomy.js';
 
 export function evaluateEfficiency(tokensUsed: TokenUsage, resolutionSuccess: boolean): number {
   if (tokensUsed.totalTokens === 0) return 0;
@@ -16,9 +17,10 @@ export function evaluateToolEfficiency(options: {
   const { toolCalls, durationMs, resolutionSuccess, tokensUsed } = options;
   const toolCallCount = toolCalls.length;
   const failedToolCallCount = toolCalls.filter((call) => call.error !== undefined).length;
-  const editCallCount = toolCalls.filter((call) => isEditTool(call.toolName)).length;
-  const explorationCallCount = toolCalls.filter((call) => isExplorationTool(call.toolName)).length;
-  const verificationCallCount = toolCalls.filter((call) => isVerificationTool(call.toolName, call)).length;
+  const categories = toolCalls.map((call) => classifyToolCall(call));
+  const editCallCount = categories.filter((category) => category === 'edit').length;
+  const explorationCallCount = categories.filter((category) => category === 'exploration').length;
+  const verificationCallCount = categories.filter((category) => category === 'verification').length;
 
   const toolErrorRate = toolCallCount === 0 ? 0 : failedToolCallCount / toolCallCount;
   const errorScore = 1 - clamp01(toolErrorRate);
@@ -75,27 +77,6 @@ export function evaluateToolEfficiency(options: {
 
 export function hitlProxy(editsFirstTry: boolean): number {
   return editsFirstTry ? 1.0 : 0.0;
-}
-
-function isEditTool(toolName: string): boolean {
-  return ['edit', 'multi_edit', 'multi-edit'].includes(toolName);
-}
-
-function isExplorationTool(toolName: string): boolean {
-  return ['read', 'ls', 'glob', 'ripgrep', 'codebase_explorer', 'codebase-explorer'].includes(toolName);
-}
-
-function isVerificationTool(toolName: string, call: ToolCallLog): boolean {
-  if (['lsp_validation', 'lsp-validation'].includes(toolName)) {
-    return true;
-  }
-
-  if (toolName !== 'bash') {
-    return false;
-  }
-
-  const command = typeof call.args['command'] === 'string' ? call.args['command'] : '';
-  return /\b(test|check|lint|typecheck|tsc|pytest|mvn|gradle|cargo|go test|npm test|pnpm test|yarn test)\b/i.test(command);
 }
 
 function scoreEditEfficiency(editCallCount: number, resolutionSuccess: boolean): number {

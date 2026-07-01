@@ -1,5 +1,8 @@
+import type { ToolCategory } from './metrics/tool-taxonomy.js';
+
 export interface ToolCallLog {
   toolName: string;
+  category?: ToolCategory;
   args: Record<string, any>;
   result?: string;
   error?: string;
