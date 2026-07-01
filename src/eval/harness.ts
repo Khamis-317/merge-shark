@@ -8,7 +8,8 @@ import { promisify } from 'node:util';
 import { ConflictResolutionAgent } from '../agent/conflict-resolution-agent.js';
 import { models } from '../models/index.js';
 import { dedent } from '../utils/dedent.js';
-import type { EvalCase, HarnessResult, TokenUsage } from './types.js';
+import type { EvalCase, HarnessResult, TokenUsage, ToolCallLog } from './types.js';
+import { classifyToolCall } from './metrics/tool-taxonomy.js';
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
@@ -128,6 +129,7 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
 
   const model = createEvalModel(options.modelName);
   const toolCalls: HarnessResult['toolCalls'] = [];
+  const toolCategoriesByCallId = new Map<string, HarnessResult['toolCalls'][number]['category']>();
   const messages: string[] = [];
   const reasoningChunks: string[] = [];
   const startTime = Date.now();
@@ -140,19 +142,26 @@ export async function runFullRepoMode(evalCase: EvalCase, options: FullRepoRunOp
       reasoningChunks.push(chunk.text);
     },
     onToolStart: (info) => {
-      toolCalls.push({
+      const toolCall = withToolCategory({
         toolName: info.toolName,
         args: isRecord(info.input) ? info.input : { input: info.input },
         ...(info.callId ? { result: `started:${info.callId}` } : {})
       });
+      if (info.callId) {
+        toolCategoriesByCallId.set(info.callId, toolCall.category);
+      }
+      toolCalls.push(toolCall);
     },
     onToolEnd: (info) => {
-      toolCalls.push({
+      const category = info.callId ? toolCategoriesByCallId.get(info.callId) : undefined;
+      const toolCall = withToolCategory({
         toolName: info.toolName,
+        ...(category ? { category } : {}),
         args: {},
         result: typeof info.output === 'string' ? info.output : JSON.stringify(info.output),
         ...(info.isError ? { error: 'tool error' } : {})
       });
+      toolCalls.push(toolCall);
     },
     onEditRequested: async () => ({ approved: true }),
     onBashRequested: async () => ({ approved: true }),
@@ -213,12 +222,13 @@ async function runCommandAgent(evalCase: EvalCase, workingRepoPath: string, opti
   return {
     resolution,
     reasoning: output,
-    toolCalls: [{
+    toolCalls: [withToolCategory({
       toolName: options.agent,
+      category: 'command',
       args: { command },
       result: output,
       ...(error ? { error } : {})
-    }],
+    })],
     tokenUsage: {
       promptTokens: 0,
       completionTokens: 0,
@@ -226,6 +236,13 @@ async function runCommandAgent(evalCase: EvalCase, workingRepoPath: string, opti
     },
     durationMs,
     editsFirstTry: !error
+  };
+}
+
+function withToolCategory(toolCall: ToolCallLog): ToolCallLog {
+  return {
+    ...toolCall,
+    category: toolCall.category ?? classifyToolCall(toolCall)
   };
 }
 
