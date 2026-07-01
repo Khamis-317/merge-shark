@@ -2,7 +2,6 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { dedent } from '../utils/dedent.js';
 import { ConflictRepository, type Conflict } from './db.js';
-import { createEmbedding } from './embedder.js';
 import { extractAllConflicts } from '../utils/parse-conflicts.js';
 
 export function formatPreviousResolution(record: Conflict): string {
@@ -44,16 +43,8 @@ export async function queryPreviousResolutions(
     if (!fileType || conflicts.length === 0) continue;
 
     for (const conflict of conflicts) {
-      const conflictText = `${conflict.baseChange}\n${conflict.incomingChange}`;
-      let vector: number[];
       try {
-        vector = await createEmbedding(conflictText);
-      } catch {
-        continue;
-      }
-
-      try {
-        const similar = await memory.findSimilar(vector, fileType, 3);
+        const similar = await memory.findSimilar(conflict.content, fileType, 3);
         for (const record of similar) {
           if (seenIds.has(record.id)) continue;
           seenIds.add(record.id);

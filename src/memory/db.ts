@@ -1,8 +1,10 @@
 import * as lancedb from '@lancedb/lancedb';
+import type { Embedder } from './embedder.js';
 
 export interface Conflict {
   id: string;
-  embeddedConflict: number[];
+  content: string;
+  embedding?: number[];
   baseBranch: string;
   incomingBranch: string;
   baseChange: string;
@@ -16,7 +18,7 @@ export interface IConflictRepository {
   connect(): Promise<void>;
   save(conflict: Conflict): Promise<void>;
   findSimilar(
-    vector: number[],
+    conflictBlock: string,
     fileType: string,
     limit: number
   ): Promise<Conflict[]>;
@@ -26,7 +28,10 @@ export class ConflictRepository implements IConflictRepository {
   private db: lancedb.Connection | null = null;
   private tableName = 'conflicts';
 
-  constructor(private uri: string = './.lancedb') {}
+  constructor(
+    private uri: string = './.lancedb',
+    private embedder?: Embedder
+  ) {}
 
   async connect(): Promise<void> {
     this.db = await lancedb.connect(this.uri);
@@ -34,6 +39,9 @@ export class ConflictRepository implements IConflictRepository {
 
   async save(conflict: Conflict): Promise<void> {
     if (!this.db) throw new Error('Database not connected');
+
+    if (!this.embedder) throw new Error('Embedder not configured');
+    conflict.embedding = await this.embedder.embedQuery(conflict.content);
 
     const tables = await this.db.tableNames();
     if (!tables.includes(this.tableName)) {
@@ -46,7 +54,7 @@ export class ConflictRepository implements IConflictRepository {
   }
 
   async findSimilar(
-    vector: number[],
+    conflictBlock: string,
     fileType: string,
     limit: number = 3
   ): Promise<Conflict[]> {
@@ -54,6 +62,9 @@ export class ConflictRepository implements IConflictRepository {
 
     const tables = await this.db.tableNames();
     if (!tables.includes(this.tableName)) return [];
+
+    if (!this.embedder) throw new Error('Embedder not configured');
+    const vector: number[] = await this.embedder.embedQuery(conflictBlock);
 
     const table = await this.db.openTable(this.tableName);
     const results: Conflict[] = await (

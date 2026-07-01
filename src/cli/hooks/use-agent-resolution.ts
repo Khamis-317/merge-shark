@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ConflictResolutionAgent } from '../../agent/conflict-resolution-agent.js';
 import {
   ConflictRepository,
-  createEmbedding,
+  getEmbedder,
   parseConflictBlock,
   type Conflict,
 } from '../../memory/index.js';
@@ -307,7 +307,10 @@ export function useAgentResolution({
     // Run the agent
     const runAgent = async () => {
       // Set up memory
-      const memory = new ConflictRepository();
+      const memory = new ConflictRepository(
+        undefined,
+        getEmbedder() ?? undefined
+      );
       try {
         await memory.connect();
         agent.memory = memory;
@@ -345,13 +348,12 @@ export function useAgentResolution({
               const parsed = parseConflictBlock(edit.oldText);
               if (!parsed) continue;
 
-              const conflictText = `${parsed.baseChange}\n${parsed.incomingChange}`;
-              const vector = await createEmbedding(conflictText);
               const fileType = path.extname(edit.path).slice(1);
 
               const conflict: Conflict = {
                 id: randomUUID(),
-                embeddedConflict: vector,
+                content: parsed.content,
+                embedding: [],
                 baseBranch:
                   currentBranch && parsed.baseBranch === 'HEAD'
                     ? currentBranch

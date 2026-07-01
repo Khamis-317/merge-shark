@@ -3,10 +3,13 @@ export {
   type Conflict,
   type IConflictRepository,
 } from './db.js';
-export { createEmbedding } from './embedder.js';
+export { getEmbedder, type Embedder } from './embedder.js';
 export {
   parseConflictBlock,
   extractAllConflicts,
   type ParsedConflict,
 } from '../utils/parse-conflicts.js';
-export { queryPreviousResolutions } from './retrieval.js';
+export {
+  queryPreviousResolutions,
+  formatPreviousResolution,
+} from './retrieval.js';

@@ -5,11 +5,11 @@ const SEPARATOR = '=======';
 const FOOTER_PATTERN = />>>>>>> (.+)/;
 
 export interface ParsedConflict {
+  content: string;
   baseBranch: string;
   incomingBranch: string;
   baseChange: string;
   incomingChange: string;
-  fullConflict: string;
 }
 
 export function parseConflictBlock(text: string): ParsedConflict | null {
@@ -35,7 +35,7 @@ export function parseConflictBlock(text: string): ParsedConflict | null {
     incomingBranch,
     baseChange,
     incomingChange,
-    fullConflict: text,
+    content: text,
   };
 }
 

@@ -1,5 +1,7 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 
+export type Embedder = { embedQuery(text: string): Promise<number[]> };
+
 export type EmbeddingModelFactory = () => {
   embedQuery(text: string): Promise<number[]>;
 };
@@ -45,8 +47,7 @@ export const embeddingModels: Record<string, EmbeddingModel> = {
   },
 };
 
-let activeEmbedder: { embedQuery(text: string): Promise<number[]> } | null =
-  null;
+let activeEmbedder: Embedder | null = null;
 
 export function setEmbeddingModel(key: string): void {
   const embedderDef = embeddingModels[key];
@@ -54,7 +55,6 @@ export function setEmbeddingModel(key: string): void {
   activeEmbedder = embedderDef.factory();
 }
 
-export async function createEmbedding(text: string): Promise<number[]> {
-  if (!activeEmbedder) throw new Error('Embedding model not configured');
-  return activeEmbedder.embedQuery(text);
+export function getEmbedder(): Embedder | null {
+  return activeEmbedder;
 }
