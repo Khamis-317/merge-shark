@@ -1,5 +1,6 @@
 import { dedent } from '../utils/dedent.js';
 import { formatDate } from '../utils/format-date.js';
+import type { SkillMetaData } from '../context/skills.js';
 
 export interface SystemInfo {
   operatingSystem: string;
@@ -11,6 +12,7 @@ export interface SystemPromptOptions {
   systemInfo: SystemInfo;
   mergeInfo?: string | null;
   agentsMdContent?: string;
+  availableSkills?: SkillMetaData[];
 }
 
 function createMergeContext(mergeInfo?: string | null) {
@@ -20,7 +22,7 @@ function createMergeContext(mergeInfo?: string | null) {
     <merge_context>
     The following merge information is available for this conflict resolution:
     
-    ${mergeInfo}
+    ${mergeInfo}  
     
     This information shows the merge target (the branch being merged in) and the merge base (the common ancestor commit).
     Use this context when you need to pass an argument that contains branchRef to git commands via the bash tool.
@@ -35,6 +37,35 @@ function createAgentsMdSection(content: string) {
     <project-context source="AGENTS.md">
     ${content}
     </project-context>
+    `;
+}
+
+function createSkillsSection(skills: SkillMetaData[]): string {
+  if (skills.length === 0) return '';
+
+  const skillEntries = skills
+    .map((s) => `  <skill name="${s.name}">\n    ${s.description}\n  </skill>`)
+    .join('\n');
+
+  return dedent`
+    <available_skills>
+    ${skillEntries}
+    </available_skills>
+
+    <skills_usage>
+    You have access to domain knowledge skills. Before resolving a conflict, review the skills above.
+
+    WHEN TO USE:
+    - If a skill's description matches the current conflict context (file type, directory, framework, patterns), invoke use_skill with that skill's name before attempting resolution.
+    - Do not invoke a skill for every conflict mechanically, only when the description plausibly applies.
+    - Do not invoke use_skill for a skill already loaded this session, its content is already in your context.
+    - If multiple skills apply, invoke use_skill for each one.
+
+    AFTER LOADING A SKILL:
+    - Treat the skill body as authoritative guidance for the resolution.
+    - If the skill body instructs you to read supporting files, use the read tool with the absolute paths listed under [SKILL FILES] in the tool response.
+    - If the skill body instructs you to run a script, use the bash tool with the absolute path listed under [SKILL FILES].
+    </skills_usage>
     `;
 }
 
@@ -151,6 +182,7 @@ export function createSystemPrompt(options: SystemPromptOptions) {
     </lsp_validation>
     
     ${createMergeContext(options.mergeInfo)}
+    ${options.availableSkills && options.availableSkills.length > 0 ? createSkillsSection(options.availableSkills) : ''}
     <system_information>
     Operating system: ${options.systemInfo.operatingSystem}
     Date: ${formatDate(options.systemInfo.date)}

@@ -6,6 +6,8 @@ import {
   collectDirectoryContexts,
   type AgentsMdContext,
 } from '../context/agents-md.js';
+import { discoverSkills } from '../context/skills.js';
+import { makeUseSkillTool } from '../tools/use-skill.js';
 import { makeReadTool } from '../tools/read.js';
 import { createAgent } from 'langchain';
 import type { StructuredToolInterface } from '@langchain/core/tools';
@@ -105,9 +107,10 @@ export class ConflictResolutionAgent extends BaseAgent {
   private async resolveConflicts(): Promise<FileEditOptions[]> {
     const conflictingFiles = await getConflictingFiles(this.repoPath);
 
-    const [repoLevel, agentsMdPaths] = await Promise.all([
+    const [repoLevel, agentsMdPaths, skillRegistry] = await Promise.all([
       findRepoLevelAgentsMd(this.repoPath),
       globAllAgentsMdPaths(this.repoPath),
+      discoverSkills(this.repoPath),
     ]);
 
     const agentsMdContext: AgentsMdContext = {
@@ -151,6 +154,7 @@ export class ConflictResolutionAgent extends BaseAgent {
         onTodoUpdate: this.callbacks.onTodoUpdate,
       }),
       makeCodebaseExplorerTool(this.repoPath, this.llm, this.callbacks),
+      makeUseSkillTool(skillRegistry),
       // TavilySearch (@langchain/tavily) still ships a zod v3 input schema,
       // whose types are incompatible with this project's
       // `exactOptionalPropertyTypes`. It is a valid StructuredTool at runtime,
@@ -173,6 +177,7 @@ export class ConflictResolutionAgent extends BaseAgent {
       },
       mergeInfo,
       ...(repoLevel ? { agentsMdContent: repoLevel.content } : {}),
+      availableSkills: [...skillRegistry.values()],
     });
 
     const userPrompt = dedent`
