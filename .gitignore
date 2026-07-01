@@ -5,3 +5,7 @@ node_modules/
 .vscode/
 .idea/
 output.log
+
+# Evaluation Datasets and Caches
+eval_datasets/
+eval-results/
